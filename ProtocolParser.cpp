@@ -143,7 +143,7 @@ void ProtocolParser::listNode(Node *node) {
     }
 
     const Property_t** props = node->getProperties();
-    uint16_t propsCount = node->getPropertiesCount();
+    unsigned propsCount = node->getPropertiesCount();
     for (uint16_t i = 0; i < propsCount; i++) {
         puts(props[i]->name);
     }
@@ -151,39 +151,49 @@ void ProtocolParser::listNode(Node *node) {
 }
 
 void ProtocolParser::getProperty(Node *node, const Property_t *prop) {
+    node = (Node*)((int)node - prop->nodeOffset);
     char buffer[256];
-    prop->getter(node, buffer);
     switch (prop->type) {
-    case PropertyType_Uint32: sprintf(buffer, "%u", *((unsigned int*)buffer)); break;
-    case PropertyType_Int32: sprintf(buffer, "%d", *((int*)buffer)); break;
-    case PropertyType_Bool: strcpy(buffer, buffer[0] ? "true" : "false"); break;
-    case PropertyType_String: break;
-    case PropertyType_Method: strcpy(buffer, "METHOD GETTER CALLED!"); break;
+    case PropertyType_Bool:
+        buffer[0] = prop->boolGet(node) ? '1' : '0';
+        buffer[1] = '\0';
+        break;
+    case PropertyType_Int32:
+        sprintf(buffer, "%ld", prop->intGet(node));
+        break;
+    case PropertyType_Uint32:
+        sprintf(buffer, "%lu", prop->uintGet(node));
+        break;
+    case PropertyType_String:
+        prop->stringGet(node, buffer);
+        break;
+    default: buffer[0] = '\0';
     }
     puts(buffer);
 }
 
 void ProtocolParser::setProperty(Node *node, const Property_t *prop, const char *value) {
-    char buffer[256] = {0};
+    node = (Node*)((int)node - prop->nodeOffset);
     switch (prop->type) {
-    case PropertyType_Uint32: sscanf(value, "%u", (unsigned int*)buffer); break;
-    case PropertyType_Int32: sscanf(value, "%d", (int*)buffer); break;
     case PropertyType_Bool:
-        if ((strcmp(value, "true") == 0) || (strcmp(value, "1") == 0))
-            buffer[0] = 1;
-        else if ((strcmp(value, "false") == 0) || (strcmp(value, "0") == 0))
-            buffer[0] = 0;
-        else
-            return;
+        prop->boolSet(node, value[0] != '0');
+        break;
+    case PropertyType_Int32:
+        int32_t i;
+        sscanf(value, "%ld", &i);
+        prop->intSet(node, i);
+        break;
+    case PropertyType_Uint32:
+        uint32_t j;
+        sscanf(value, "%lu", &j);
+        prop->uintSet(node, j);
         break;
     case PropertyType_String:
-    case PropertyType_Method:
-        strcpy(buffer, value);
+        prop->stringSet(node, value);
         break;
-    }
-    prop->setter(node, buffer);
-    if (prop->type == PropertyType_Method) {
-        fputs(buffer, stdout);
+    case PropertyType_Method:
+        prop->methodInvoke(node, value);
+        break;
     }
 }
 
