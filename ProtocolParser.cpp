@@ -126,28 +126,33 @@ void ProtocolParser::reportError(ProtocolResult_t errorCode) {
     char buf[4];
     snprintf(buf, 4, "E%d:", errorCode);
 
-    //TODO ITM
-    fputs(buf, stdout);
-    fputs(resultToStr(errorCode), stdout);
-    fputs("\n", stdout);
+    serialInterface->writeString(buf);
+    serialInterface->writeString(resultToStr(errorCode));
+    serialInterface->writeString("\n");
 }
 
 void ProtocolParser::listNode(Node *node) {
-    puts("{");
+    serialInterface->writeString("{\n");
     Node* n = node->getFirstChild();
     while (n != NULL) {
-        fputs("N ", stdout);
-        fputs(n->getName(), stdout);
-        fputs("\n", stdout);
+        serialInterface->writeString("N ");
+        serialInterface->writeString(n->getName());
+        serialInterface->writeString("\n");
         n = n->getNextSibling();
     }
 
     const Property_t** props = node->getProperties();
     unsigned propsCount = node->getPropertiesCount();
     for (uint16_t i = 0; i < propsCount; i++) {
-        puts(props[i]->name);
+        serialInterface->writeString("P_");
+        serialInterface->writeString(Property_TypeToStr(props[i]->type));
+        serialInterface->writeString(" ");
+        serialInterface->writeString(props[i]->name);
+        serialInterface->writeString("=");
+        getProperty(node, props[i]);
+        serialInterface->writeString("\n");
     }
-    puts("}");
+    serialInterface->writeString("}\n");
 }
 
 void ProtocolParser::getProperty(Node *node, const Property_t *prop) {
@@ -169,7 +174,7 @@ void ProtocolParser::getProperty(Node *node, const Property_t *prop) {
         break;
     default: buffer[0] = '\0';
     }
-    puts(buffer);
+    serialInterface->writeString(buffer);
 }
 
 void ProtocolParser::setProperty(Node *node, const Property_t *prop, const char *value) {
