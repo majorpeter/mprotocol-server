@@ -14,5 +14,5 @@ void ItmSerialInterface::listen() {
 }
 
 void ItmSerialInterface::writeString(const char* bytes) {
-    puts(bytes);
+    fputs(bytes, stdout);
 }
