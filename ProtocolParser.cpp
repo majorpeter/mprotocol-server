@@ -148,8 +148,10 @@ void ProtocolParser::listNode(Node *node) {
         serialInterface->writeString(Property_TypeToStr(props[i]->type));
         serialInterface->writeString(" ");
         serialInterface->writeString(props[i]->name);
-        serialInterface->writeString("=");
-        getProperty(node, props[i]);
+        if (props[i]->accessLevel != PropAccessLevel_Invokable) {
+            serialInterface->writeString("=");
+            getProperty(node, props[i]);
+        }
         serialInterface->writeString("\n");
     }
     serialInterface->writeString("}\n");
@@ -160,14 +162,17 @@ void ProtocolParser::getProperty(Node *node, const Property_t *prop) {
     char buffer[256];
     switch (prop->type) {
     case PropertyType_Bool:
-        buffer[0] = prop->boolGet(node) ? '1' : '0';
+        prop->boolGet(node, (bool*)buffer);
+        buffer[0] = buffer[0] ? '1' : '0';
         buffer[1] = '\0';
         break;
     case PropertyType_Int32:
-        sprintf(buffer, "%ld", prop->intGet(node));
+        prop->intGet(node, (int32_t*)buffer);
+        sprintf(buffer, "%ld", *(int32_t*)buffer);
         break;
     case PropertyType_Uint32:
-        sprintf(buffer, "%lu", prop->uintGet(node));
+        prop->uintGet(node, (uint32_t*)buffer);
+        sprintf(buffer, "%lu", *(uint32_t*)buffer);
         break;
     case PropertyType_String:
         prop->stringGet(node, buffer);
