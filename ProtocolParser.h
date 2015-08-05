@@ -7,21 +7,12 @@
 
 class Node;
 
-typedef enum {
-    ProtocolResult_Ok,
-    ProtocolResult_UnknownFunc,
-    ProtocolResult_NodeNotFound,
-    ProtocolResult_PropertyNotFound,
-    ProtocolResult_SyntaxError,
-    ProtocolResult_InvalidFunc,
-} ProtocolResult_t;
-
 class ProtocolParser: public AbstractUpLayer {
     AbstractSerialInterface* serialInterface;
 
     void listNode(Node *node);
-    void getProperty(Node *node, const Property_t *prop);
-    void setProperty(Node *node, const Property_t *prop, const char* value);
+    ProtocolResult_t getProperty(Node *node, const Property_t *prop, char* value);
+    ProtocolResult_t setProperty(Node *node, const Property_t *prop, const char* value);
 public:
     ProtocolParser(AbstractSerialInterface* serialInterface);
     virtual ~ProtocolParser() {}

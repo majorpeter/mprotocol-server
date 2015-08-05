@@ -75,6 +75,8 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
             if (node != NULL) {
                 listNode(node);
                 return ProtocolResult_Ok;
+            } else {
+                return ProtocolResult_NodeNotFound;
             }
         }
         return ProtocolResult_SyntaxError;
@@ -96,26 +98,38 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
         return ProtocolResult_PropertyNotFound;
     }
 
+    ProtocolResult_t result;
     switch (decodedFunc) {
     default:
     case GET:
         if (prop->type == PropertyType_Method) {
             return ProtocolResult_InvalidFunc;
         }
-        getProperty(node, prop);
-        return ProtocolResult_Ok;
+        char buffer[256];
+        result = this->getProperty(node, prop, buffer);
+        if (result == ProtocolResult_Ok) {
+            serialInterface->writeString(prop->name);
+            serialInterface->writeString("=");
+            serialInterface->writeString(buffer);
+            serialInterface->writeString("\n");
+        } else {
+            serialInterface->writeString(resultToStr(result));
+        }
+        return result;
     case SET:
         if (prop->accessLevel != PropAccessLevel_ReadWrite) {
             return ProtocolResult_InvalidFunc;
         }
-        setProperty(node, prop, s);
-        return ProtocolResult_Ok;
+        result = setProperty(node, prop, s);
+        serialInterface->writeString(resultToStr(result));
+        return result;
     case CALL:
         if (prop->type != PropertyType_Method) {
             return ProtocolResult_InvalidFunc;
         }
-        setProperty(node, prop, s);
-        return ProtocolResult_Ok;
+        result = setProperty(node, prop, s);
+        serialInterface->writeString(resultToStr(result));
+        return result;
     }
 
 
@@ -144,67 +158,84 @@ void ProtocolParser::listNode(Node *node) {
     const Property_t** props = node->getProperties();
     unsigned propsCount = node->getPropertiesCount();
     for (uint16_t i = 0; i < propsCount; i++) {
-        serialInterface->writeString("P_");
-        serialInterface->writeString(Property_TypeToStr(props[i]->type));
-        serialInterface->writeString(" ");
-        serialInterface->writeString(props[i]->name);
+        char buffer[256];
+        strcpy(buffer, "P_");   // maybe optimize?
+        strcat(buffer, Property_TypeToStr(props[i]->type));
+        strcat(buffer, " ");
+        strcat(buffer, props[i]->name);
         if (props[i]->accessLevel != PropAccessLevel_Invokable) {
-            serialInterface->writeString("=");
-            getProperty(node, props[i]);
+            strcat(buffer, "=");
+
+            ProtocolResult_t result = getProperty(node, props[i], buffer + strlen(buffer));
+            if (result != ProtocolResult_Ok) {
+                serialInterface->writeString(resultToStr(result));
+                continue;
+            }
         }
-        serialInterface->writeString("\n");
+        strcat(buffer, "\n");
+        serialInterface->writeString(buffer);
     }
     serialInterface->writeString("}\n");
 }
 
-void ProtocolParser::getProperty(Node *node, const Property_t *prop) {
+ProtocolResult_t ProtocolParser::getProperty(Node *node, const Property_t *prop, char* value) {
     node = (Node*)((int)node - prop->nodeOffset);
-    char buffer[256];
+    ProtocolResult_t result = ProtocolResult_InternalError;
+
     switch (prop->type) {
     case PropertyType_Bool:
-        prop->boolGet(node, (bool*)buffer);
-        buffer[0] = buffer[0] ? '1' : '0';
-        buffer[1] = '\0';
+        result = prop->boolGet(node, (bool*)value);
+        if (result == ProtocolResult_Ok) {
+            value[0] = value[0] ? '1' : '0';
+            value[1] = '\0';
+        }
         break;
     case PropertyType_Int32:
-        prop->intGet(node, (int32_t*)buffer);
-        sprintf(buffer, "%ld", *(int32_t*)buffer);
+        result = prop->intGet(node, (int32_t*)value);
+        if (result == ProtocolResult_Ok) {
+            sprintf(value, "%ld", *(int32_t*)value);
+        }
         break;
     case PropertyType_Uint32:
-        prop->uintGet(node, (uint32_t*)buffer);
-        sprintf(buffer, "%lu", *(uint32_t*)buffer);
+        result = prop->uintGet(node, (uint32_t*)value);
+        if (result == ProtocolResult_Ok) {
+            sprintf(value, "%lu", *(uint32_t*)value);
+        }
         break;
     case PropertyType_String:
-        prop->stringGet(node, buffer);
+        result = prop->stringGet(node, value);
         break;
-    default: buffer[0] = '\0';
+    default: value[0] = '\0';
     }
-    serialInterface->writeString(buffer);
+    return result;
 }
 
-void ProtocolParser::setProperty(Node *node, const Property_t *prop, const char *value) {
+ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop, const char *value) {
     node = (Node*)((int)node - prop->nodeOffset);
+    ProtocolResult_t result = ProtocolResult_InternalError;
+
     switch (prop->type) {
     case PropertyType_Bool:
-        prop->boolSet(node, value[0] != '0');
+        result = prop->boolSet(node, value[0] != '0');
         break;
     case PropertyType_Int32:
         int32_t i;
         sscanf(value, "%ld", &i);
-        prop->intSet(node, i);
+        result = prop->intSet(node, i);
         break;
     case PropertyType_Uint32:
         uint32_t j;
         sscanf(value, "%lu", &j);
-        prop->uintSet(node, j);
+        result = prop->uintSet(node, j);
         break;
     case PropertyType_String:
-        prop->stringSet(node, value);
+        result = prop->stringSet(node, value);
         break;
     case PropertyType_Method:
-        prop->methodInvoke(node, value);
+        result = prop->methodInvoke(node, value);
         break;
     }
+    return result;
 }
 
 const char* ProtocolParser::resultToStr(ProtocolResult_t result) {
@@ -215,6 +246,8 @@ const char* ProtocolParser::resultToStr(ProtocolResult_t result) {
     case ProtocolResult_PropertyNotFound: return "Property not found";
     case ProtocolResult_SyntaxError: return "Syntax Error";
     case ProtocolResult_InvalidFunc: return "Invalid function";
+    case ProtocolResult_InvalidValue: return "Invalid value";
+    case ProtocolResult_InternalError: return "Internal error";
     }
     return "Unknown Error code!";
 }
