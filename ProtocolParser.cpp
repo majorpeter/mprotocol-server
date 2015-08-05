@@ -148,6 +148,11 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
     // decode protocol function
     enum {UNKNOWN, GET, SET, CALL, OPEN, CLOSE, MAN} decodedFunc = UNKNOWN;
 
+    char *p = strchr(s, '\n');
+    if (p != NULL) {
+    	*p = '\0';
+    }
+
     if (strncmp("GET ", s, 4) == 0) {
         decodedFunc = GET;
         s += 4;
@@ -174,7 +179,6 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
 
     // decode target node
     Node* node = NULL;
-    char *p;
     if (s[0] != '/') {
         return ProtocolResult_NodeNotFound;
     }
@@ -382,7 +386,7 @@ ProtocolResult_t ProtocolParser::getProperty(const Node *node, const Property_t 
         	}
 
         	// print integer part and substract it
-        	pos = sprintf(value + pos, "%d", (int) f);
+        	pos = sprintf(value + pos, "%0d", (int) f);
             f -= (float) (int) f;
 
             // print decimal point if the fractional part is big enough
@@ -423,7 +427,7 @@ ProtocolResult_t ProtocolParser::getProperty(const Node *node, const Property_t 
 }
 
 ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop, const char *value) {
-    node = (Node*)((int)node - prop->nodeOffset);
+    node = (Node*)((size_t)node - prop->nodeOffset);
     ProtocolResult_t result = ProtocolResult_InternalError;
 
     switch (prop->type) {
