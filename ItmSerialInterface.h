@@ -1,7 +1,7 @@
 /*
  * ItmSerialInterface.h
  *
- *  Created on: 2015 jún. 24
+ *  Created on: 2015 jï¿½n. 24
  *      Author: peter.major
  */
 
@@ -17,6 +17,7 @@ public:
     virtual ~ItmSerialInterface() {}
 
     virtual void listen();
+    //TODO implement isOpen();
     virtual void writeString(const char* bytes);
 };
 

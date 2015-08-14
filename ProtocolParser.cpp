@@ -1,7 +1,7 @@
 #include "ProtocolParser.h"
 #include "Nodes/RootNode.h"
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 ProtocolParser::ProtocolParser(AbstractSerialInterface* serialInterface): serialInterface(serialInterface) {}
 
@@ -202,6 +202,15 @@ ProtocolResult_t ProtocolParser::getProperty(Node *node, const Property_t *prop,
             sprintf(value, "%lu", *(uint32_t*)value);
         }
         break;
+    case PropertyType_Float32:
+        result = prop->floatGet(node, (float32_t*)value);
+        if (result == ProtocolResult_Ok) {
+            /*https://answers.launchpad.net/gcc-arm-embedded/+question/245658
+            http://www1.coocox.org/forum/topic.php?id=346*/
+#warning fix float32!!
+            sprintf(value, "a%lfb", /**(float32_t*)value*/ 3.14f);
+        }
+        break;
     case PropertyType_String:
         result = prop->stringGet(node, value);
         break;
@@ -227,6 +236,11 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
         uint32_t j;
         sscanf(value, "%lu", &j);
         result = prop->uintSet(node, j);
+        break;
+    case PropertyType_Float32:
+        float32_t f;
+        sscanf(value, "%f", &f);
+        result = prop->floatSet(node, f);
         break;
     case PropertyType_String:
         result = prop->stringSet(node, value);
