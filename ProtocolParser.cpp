@@ -3,10 +3,10 @@
 #include <cstdio>
 #include <cstring>
 
-#define RXBUFFER_SIZE 256
+#define RX_BUFFER_SIZE 256
 
 ProtocolParser::ProtocolParser(AbstractSerialInterface* serialInterface): serialInterface(serialInterface) {
-	rxBuffer = new char[RXBUFFER_SIZE];
+	rxBuffer = new char[RX_BUFFER_SIZE];
 	rxPosition = 0;
 }
 
@@ -15,9 +15,12 @@ void ProtocolParser::listen() {
 }
 
 bool ProtocolParser::receiveBytes(const uint8_t* bytes, uint16_t len) {
-	//TODO check for overflow!
+	if (rxPosition + len > RX_BUFFER_SIZE) {
+		return false;
+	}
 	memcpy(rxBuffer + rxPosition, bytes, len);
 	rxPosition += len;
+	return true;
 }
 
 void ProtocolParser::handler() {

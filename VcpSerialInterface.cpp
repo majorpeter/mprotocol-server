@@ -64,9 +64,5 @@ static int8_t SerialIface_CDC_Receive_FS(uint8_t* Buf, uint32_t *Len) {
 	USBD_CDC_ReceivePacket(hUsbDevice_0);
 	bool success = VcpSerialInterface::getInstance()->receiveBytes(Buf, (uint16_t) *Len);
 
-	fputs("Receive: ", stdout);
-	fwrite(Buf, 1, *Len, stdout);
-	fputc('\n', stdout);
-
 	return success ? USBD_OK : USBD_BUSY;
 }
