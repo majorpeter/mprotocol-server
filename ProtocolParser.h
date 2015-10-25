@@ -8,6 +8,7 @@
 class Node;
 
 class ProtocolParser: public AbstractUpLayer {
+	static ProtocolParser* instance;
     AbstractSerialInterface* serialInterface;
     char *rxBuffer;
     uint16_t rxPosition;
@@ -17,7 +18,8 @@ class ProtocolParser: public AbstractUpLayer {
     ProtocolResult_t setProperty(Node *node, const Property_t *prop, const char* value);
 public:
     ProtocolParser(AbstractSerialInterface* serialInterface);
-    virtual ~ProtocolParser() {}
+    virtual ~ProtocolParser();
+    static ProtocolParser* getExistingInstance();
     void listen();
     virtual bool receiveBytes(const uint8_t* bytes, uint16_t len);
     void handler();

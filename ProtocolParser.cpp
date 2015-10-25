@@ -5,9 +5,26 @@
 
 #define RX_BUFFER_SIZE 256
 
+ProtocolParser* ProtocolParser::instance = NULL;
+
 ProtocolParser::ProtocolParser(AbstractSerialInterface* serialInterface): serialInterface(serialInterface) {
 	rxBuffer = new char[RX_BUFFER_SIZE];
 	rxPosition = 0;
+	//TODO check if it is null now
+	instance = this;
+}
+
+ProtocolParser::~ProtocolParser() {
+	delete[] rxBuffer;
+	instance = NULL;
+}
+
+/**
+ * this function returns the single instance if it exists
+ * @note returns NULL if it does not exist
+ */
+ProtocolParser* ProtocolParser::getExistingInstance() {
+	return instance;
 }
 
 void ProtocolParser::listen() {
