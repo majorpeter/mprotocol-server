@@ -3,17 +3,41 @@
 #include <cstdio>
 #include <cstring>
 
-ProtocolParser::ProtocolParser(AbstractSerialInterface* serialInterface): serialInterface(serialInterface) {}
+#define RXBUFFER_SIZE 256
+
+ProtocolParser::ProtocolParser(AbstractSerialInterface* serialInterface): serialInterface(serialInterface) {
+	rxBuffer = new char[RXBUFFER_SIZE];
+	rxPosition = 0;
+}
 
 void ProtocolParser::listen() {
     serialInterface->listen();
 }
 
-void ProtocolParser::receiveString(char* s) {
-    ProtocolResult_t result = parseString(s);
-    if (result != ProtocolResult_Ok) {
-        reportError(result);
-    }
+void ProtocolParser::receiveBytes(const uint8_t* bytes, uint16_t len) {
+	//TODO check for overflow!
+	memcpy(rxBuffer + rxPosition, bytes, len);
+	rxPosition += len;
+}
+
+void ProtocolParser::handler() {
+	char *nl = (char*) memchr(rxBuffer, '\n', rxPosition);
+	if (nl == NULL) {
+		nl = (char*) memchr(rxBuffer, '\r', rxPosition);
+		if (nl == NULL) {
+			return;
+		}
+	}
+
+	// change new line char to null (terminate string)
+	*nl = '\0';
+	rxPosition = 0; //TODO allow multiple commands in 1 handler
+	ProtocolResult_t result = parseString(rxBuffer);
+	if (result != ProtocolResult_Ok) {
+		reportError(result);
+	}
+
+	serialInterface->handler();
 }
 
 ProtocolResult_t ProtocolParser::parseString(char *s) {

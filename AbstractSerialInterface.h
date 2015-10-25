@@ -22,6 +22,7 @@ public:
         uplayer = ul;
     }
 
+    virtual void handler() {};
     virtual void listen() {};
     virtual bool isOpen() {
     	return false;
