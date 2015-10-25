@@ -7,7 +7,7 @@ class AbstractUpLayer {
 public:
     AbstractUpLayer() {}
     virtual ~AbstractUpLayer() {}
-    virtual void receiveBytes(const uint8_t* bytes, uint16_t len) = 0;
+    virtual bool receiveBytes(const uint8_t* bytes, uint16_t len) = 0;
 };
 
 #endif /* ABSTRACTUPLAYER_H_ */

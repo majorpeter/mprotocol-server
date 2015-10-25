@@ -19,7 +19,7 @@ public:
     ProtocolParser(AbstractSerialInterface* serialInterface);
     virtual ~ProtocolParser() {}
     void listen();
-    virtual void receiveBytes(const uint8_t* bytes, uint16_t len);
+    virtual bool receiveBytes(const uint8_t* bytes, uint16_t len);
     void handler();
     ProtocolResult_t parseString(char* s);
     void reportError(ProtocolResult_t errorCode);

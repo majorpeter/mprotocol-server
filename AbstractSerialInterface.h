@@ -8,26 +8,28 @@
 #ifndef PROTOCOL_ABSTRACTSERIALINTERFACE_H_
 #define PROTOCOL_ABSTRACTSERIALINTERFACE_H_
 
+#include <stdint.h>
+
 class AbstractUpLayer;
 
 class AbstractSerialInterface {
 protected:
     AbstractUpLayer* uplayer;
 public:
-    AbstractSerialInterface() {
-        uplayer = 0;
-    }
+    AbstractSerialInterface();
     virtual ~AbstractSerialInterface() {}
-    void setUpLayer(AbstractUpLayer *ul) {
-        uplayer = ul;
-    }
+    void setUpLayer(AbstractUpLayer *ul);
 
     virtual void handler() {};
     virtual void listen() {};
     virtual bool isOpen() {
     	return false;
     }
-    virtual void writeString(const char* bytes) = 0;
+
+    // returns true on success
+    virtual bool writeBytes(const uint8_t* bytes, uint16_t length) = 0;
+    // returns true on success
+    virtual bool writeString(const char* str);
 };
 
 #endif /* PROTOCOL_ABSTRACTSERIALINTERFACE_H_ */

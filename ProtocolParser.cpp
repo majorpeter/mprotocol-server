@@ -14,7 +14,7 @@ void ProtocolParser::listen() {
     serialInterface->listen();
 }
 
-void ProtocolParser::receiveBytes(const uint8_t* bytes, uint16_t len) {
+bool ProtocolParser::receiveBytes(const uint8_t* bytes, uint16_t len) {
 	//TODO check for overflow!
 	memcpy(rxBuffer + rxPosition, bytes, len);
 	rxPosition += len;

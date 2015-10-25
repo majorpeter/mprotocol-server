@@ -9,7 +9,6 @@
 #define PROTOCOL_ITMSERIALINTERFACE_H_
 
 #include "AbstractSerialInterface.h"
-#include <stdint.h>
 
 class ItmSerialInterface: public AbstractSerialInterface {
 public:
@@ -18,7 +17,7 @@ public:
 
     virtual void listen();
     //TODO implement isOpen();
-    virtual void writeString(const char* bytes);
+    virtual bool writeString(const char* bytes);
 };
 
 #endif /* PROTOCOL_ITMSERIALINTERFACE_H_ */
