@@ -14,6 +14,7 @@ class VcpSerialInterface: public AbstractSerialInterface {
 private:
 	char *txBuffer;
 	uint16_t txPosition;
+	uint16_t txOverrunCount;
 	VcpSerialInterface();
 public:
 	static VcpSerialInterface* getInstance();
