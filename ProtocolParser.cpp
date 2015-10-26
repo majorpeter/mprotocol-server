@@ -278,10 +278,48 @@ ProtocolResult_t ProtocolParser::getProperty(Node *node, const Property_t *prop,
     case PropertyType_Float32:
         result = prop->floatGet(node, (float32_t*)value);
         if (result == ProtocolResult_Ok) {
-            /*https://answers.launchpad.net/gcc-arm-embedded/+question/245658
-            http://www1.coocox.org/forum/topic.php?id=346*/
-#warning fix float32!!
-            sprintf(value, "a%lfb", /**(float32_t*)value*/ 3.14f);
+        	/*
+        	 * this routine prints the float number with 4 frac. digits precision
+        	 * the printf("%f") did not work with this clib.
+        	 */
+        	float f = *(float32_t*)value;	// make a local copy
+        	int pos = 0;					// position in result string
+
+        	// print '-' if negative
+        	if (f < 0.f) {
+        		value[0] = '-';
+        		pos = 1;
+        		f = -f;
+        	}
+
+        	// print integer part and substract it
+        	pos = sprintf(value + pos, "%d", (int) f);
+            f -= (float) (int) f;
+
+            // print decimal point if the fractional part is big enough
+            if (f > 0.0001f) {
+            	value[pos] = '.';
+            	pos++;
+            }
+
+            // print and substract the first 4 fractional digits
+            uint8_t fracDigits = 0;
+            while (f > 0.0001f) {
+            	// get the next digit left from the decimal point
+            	f *= 10;
+            	// this is a lot faster than sprintf for 1 digit
+            	value[pos] = (char) ('0' + (int) f);
+            	// clear integer part
+            	f -= (float) (int) f;
+
+            	pos++;
+            	fracDigits++;
+            	if (fracDigits == 4) {
+            		break;
+            	}
+            }
+            // always close the string
+            value[pos] = '\0';
         }
         break;
     case PropertyType_String:
