@@ -4,18 +4,24 @@
 #include <cstring>
 
 #define RX_BUFFER_SIZE 256
+#define MAX_SUBSCRIBED_NODES 15
 
 ProtocolParser* ProtocolParser::instance = NULL;
 
 ProtocolParser::ProtocolParser(AbstractSerialInterface* serialInterface): serialInterface(serialInterface) {
 	rxBuffer = new char[RX_BUFFER_SIZE];
 	rxPosition = 0;
+
+	subscribedNodes = new Node*[MAX_SUBSCRIBED_NODES];
+	subscribedNodeCount = 0;
+
 	//TODO check if it is null now
 	instance = this;
 }
 
 ProtocolParser::~ProtocolParser() {
 	delete[] rxBuffer;
+	delete[] subscribedNodes;
 	instance = NULL;
 }
 
@@ -41,6 +47,27 @@ bool ProtocolParser::receiveBytes(const uint8_t* bytes, uint16_t len) {
 }
 
 void ProtocolParser::handler() {
+	// handle change notifications @subscriptions
+	for (uint16_t i = 0; i < subscribedNodeCount; i++) {
+		uint32_t mask = subscribedNodes[i]->getAndClearPropChangeMask();
+		uint8_t propIndex = 0;
+
+		while (mask != 0) {
+			// is LSB a changed property
+			if (mask & 0x01) {
+				serialInterface->writeString("CHG ");
+				serialInterface->writeString(subscribedNodes[i]->getName());
+				serialInterface->writeBytes((uint8_t*) ".", 1);
+				serialInterface->writeString(subscribedNodes[i]->getProperties()[propIndex]->name);
+				serialInterface->writeBytes((uint8_t*) "\n", 1);
+				//TODO finish this
+			}
+
+			mask = mask >> 1;
+			propIndex++;
+		}
+	}
+
 	char *nl = (char*) memchr(rxBuffer, '\n', rxPosition);
 	if (nl == NULL) {
 		nl = (char*) memchr(rxBuffer, '\r', rxPosition);
@@ -308,4 +335,19 @@ const char* ProtocolParser::resultToStr(ProtocolResult_t result) {
     case ProtocolResult_InternalError: return "Internal error";
     }
     return "Unknown Error code!";
+}
+
+/**
+ * subscribe to async change messages for node
+ * @return true if added to array, false if array already full
+ */
+bool ProtocolParser::subscribeToNode(Node *node) {
+	if (this->subscribedNodeCount == MAX_SUBSCRIBED_NODES) {
+		return false;
+	}
+
+	this->subscribedNodes[this->subscribedNodeCount] = node;
+	this->subscribedNodeCount++;
+
+	return true;
 }

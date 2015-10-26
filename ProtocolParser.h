@@ -12,6 +12,8 @@ class ProtocolParser: public AbstractUpLayer {
     AbstractSerialInterface* serialInterface;
     char *rxBuffer;
     uint16_t rxPosition;
+    Node **subscribedNodes;
+    uint16_t subscribedNodeCount;
 
     void listNode(Node *node);
     ProtocolResult_t getProperty(Node *node, const Property_t *prop, char* value);
@@ -26,6 +28,7 @@ public:
     ProtocolResult_t parseString(char* s);
     void reportError(ProtocolResult_t errorCode);
     static const char* resultToStr(ProtocolResult_t result);
+    bool subscribeToNode(Node* node);
 };
 
 #endif /* PROTOCOLPARSER_H_ */
