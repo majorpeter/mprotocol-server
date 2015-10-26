@@ -1,5 +1,6 @@
 #include "ProtocolParser.h"
 #include "Nodes/RootNode.h"
+#include "Log/Log.h"
 #include <cstdio>
 #include <cstring>
 
@@ -81,9 +82,10 @@ void ProtocolParser::handler() {
 	rxPosition = 0; //TODO allow multiple commands in 1 handler
 	ProtocolResult_t result = parseString(rxBuffer);
 	if (result != ProtocolResult_Ok) {
-		reportError(result);
+		reportResult(result);
 	}
 
+	Log::getInstance()->hanlder();
 	serialInterface->handler();
 }
 
@@ -184,7 +186,7 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
             serialInterface->writeString(buffer);
             serialInterface->writeString("\n");
         } else {
-            serialInterface->writeString(resultToStr(result));
+        	this->reportResult(result);
         }
         return result;
     case SET:
@@ -192,14 +194,14 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
             return ProtocolResult_InvalidFunc;
         }
         result = setProperty(node, prop, s);
-        serialInterface->writeString(resultToStr(result));
+        this->reportResult(result);
         return result;
     case CALL:
         if (prop->type != PropertyType_Method) {
             return ProtocolResult_InvalidFunc;
         }
         result = setProperty(node, prop, s);
-        serialInterface->writeString(resultToStr(result));
+        this->reportResult(result);
         return result;
     }
 
@@ -207,7 +209,7 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
     //return ProtocolResult_UnknownFunc;
 }
 
-void ProtocolParser::reportError(ProtocolResult_t errorCode) {
+void ProtocolParser::reportResult(ProtocolResult_t errorCode) {
     char buf[4];
     snprintf(buf, 4, "E%d:", errorCode);
 

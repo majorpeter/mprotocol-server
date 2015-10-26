@@ -26,7 +26,7 @@ public:
     virtual bool receiveBytes(const uint8_t* bytes, uint16_t len);
     void handler();
     ProtocolResult_t parseString(char* s);
-    void reportError(ProtocolResult_t errorCode);
+    void reportResult(ProtocolResult_t errorCode);
     static const char* resultToStr(ProtocolResult_t result);
     bool subscribeToNode(Node* node);
 };
