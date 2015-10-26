@@ -91,7 +91,7 @@ void ProtocolParser::handler() {
 
 ProtocolResult_t ProtocolParser::parseString(char *s) {
     // decode protocol function
-    enum {UNKNOWN, GET, SET, CALL} decodedFunc = UNKNOWN;
+    enum {UNKNOWN, GET, SET, CALL, MAN} decodedFunc = UNKNOWN;
 
     if (strncmp("GET ", s, 4) == 0) {
         decodedFunc = GET;
@@ -102,7 +102,10 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
     } else if (strncmp("CALL ", s, 5) == 0) {
         decodedFunc = CALL;
         s += 5;
-    }
+	} else if (strncmp("MAN ", s, 4) == 0) {
+		decodedFunc = MAN;
+		s += 4;
+	}
 
     if (decodedFunc == UNKNOWN) {
         return ProtocolResult_UnknownFunc;
@@ -203,6 +206,9 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
         result = setProperty(node, prop, s);
         this->reportResult(result);
         return result;
+    case MAN:
+    	this->writeManual(node, prop);
+    	return ProtocolResult_Ok;
     }
 
 
@@ -216,6 +222,13 @@ void ProtocolParser::reportResult(ProtocolResult_t errorCode) {
     serialInterface->writeString(buf);
     serialInterface->writeString(resultToStr(errorCode));
     serialInterface->writeString("\n");
+}
+
+void ProtocolParser::writeManual(const Node *node, const Property_t *property) {
+    serialInterface->writeBytes((uint8_t*) "MAN ", 4);
+    //TODO node name maybe?
+	serialInterface->writeString(property->description);
+    serialInterface->writeBytes((uint8_t*) "\n", 1);
 }
 
 void ProtocolParser::listNode(Node *node) {
@@ -232,20 +245,29 @@ void ProtocolParser::listNode(Node *node) {
     unsigned propsCount = node->getPropertiesCount();
     for (uint16_t i = 0; i < propsCount; i++) {
         char buffer[256];
-        strcpy(buffer, "P_");   // maybe optimize?
-        strcat(buffer, Property_TypeToStr(props[i]->type));
-        strcat(buffer, " ");
-        strcat(buffer, props[i]->name);
+        char *s = buffer;
+        if (props[i]->accessLevel == PropAccessLevel_ReadWrite) {
+        	strcpy(s, "PW_");
+        	s+=3;
+        } else {
+        	strcpy(s, "P_");
+        	s+=2;
+        }
+        strcpy(s, Property_TypeToStr(props[i]->type));
+        strcat(s, " ");
+        strcat(s, props[i]->name);
+    	s += strlen(s);
         if (props[i]->accessLevel != PropAccessLevel_Invokable) {
-            strcat(buffer, "=");
+            *s = '=';
+            s++;
 
-            ProtocolResult_t result = getProperty(node, props[i], buffer + strlen(buffer));
+            ProtocolResult_t result = getProperty(node, props[i], s);
             if (result != ProtocolResult_Ok) {
                 serialInterface->writeString(resultToStr(result));
                 continue;
             }
         }
-        strcat(buffer, "\n");
+        strcat(s, "\n");
         serialInterface->writeString(buffer);
     }
     serialInterface->writeString("}\n");

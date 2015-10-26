@@ -27,6 +27,7 @@ public:
     void handler();
     ProtocolResult_t parseString(char* s);
     void reportResult(ProtocolResult_t errorCode);
+    void writeManual(const Node *node, const Property_t *property);
     static const char* resultToStr(ProtocolResult_t result);
     bool subscribeToNode(Node* node);
 };
