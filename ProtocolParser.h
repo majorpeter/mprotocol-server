@@ -18,6 +18,7 @@ class ProtocolParser: public AbstractUpLayer {
     void listNode(Node *node);
     ProtocolResult_t getProperty(Node *node, const Property_t *prop, char* value);
     ProtocolResult_t setProperty(Node *node, const Property_t *prop, const char* value);
+    ProtocolResult_t getBinaryProperty(Node *node, const Property_t *prop, char* value);
 public:
     ProtocolParser(AbstractSerialInterface* serialInterface);
     virtual ~ProtocolParser();

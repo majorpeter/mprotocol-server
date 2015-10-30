@@ -347,6 +347,9 @@ ProtocolResult_t ProtocolParser::getProperty(Node *node, const Property_t *prop,
     case PropertyType_String:
         result = prop->stringGet(node, value);
         break;
+    case PropertyType_Binary:
+    	result = this->getBinaryProperty(node, prop, value);
+    	break;
     default: value[0] = '\0';
     }
     return result;
@@ -381,8 +384,25 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
     case PropertyType_Method:
         result = prop->methodInvoke(node, value);
         break;
+    case PropertyType_Binary:
+    	return ProtocolResult_InvalidFunc;	//TODO implement bin setter
     }
     return result;
+}
+
+ProtocolResult_t ProtocolParser::getBinaryProperty(Node *node, const Property_t *prop, char* value) {
+	uint8_t *ptr = NULL;
+	uint16_t length = 0;
+	ProtocolResult_t result = prop->binaryGet(node, (void**) &ptr, &length);
+	if (result == ProtocolResult_Ok) {
+		while (length > 0) {
+			sprintf(value, "%02X", *ptr);
+			value += 2;
+			ptr++;
+			length--;
+		}
+	}
+	return result;
 }
 
 const char* ProtocolParser::resultToStr(ProtocolResult_t result) {
