@@ -60,8 +60,11 @@ void ProtocolParser::handler() {
 				subscribedNodes[i]->printPathRecursively(serialInterface);
 				serialInterface->writeBytes((uint8_t*) ".", 1);
 				serialInterface->writeString(subscribedNodes[i]->getProperties()[propIndex]->name);
+				serialInterface->writeBytes((uint8_t*) "=", 1);
+				char buffer[256];	//TODO buffer size? maybe a common buffer?
+				getProperty(subscribedNodes[i], subscribedNodes[i]->getProperties()[propIndex], buffer);
+				*serialInterface << buffer;
 				serialInterface->writeBytes((uint8_t*) "\n", 1);
-				//TODO finish this
 			}
 
 			mask = mask >> 1;
