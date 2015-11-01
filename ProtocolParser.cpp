@@ -181,17 +181,7 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
         if (prop->type == PropertyType_Method) {
             return ProtocolResult_InvalidFunc;
         }
-        char buffer[256];
-        result = this->getProperty(node, prop, buffer);
-        if (result == ProtocolResult_Ok) {
-            serialInterface->writeString(prop->name);
-            serialInterface->writeString("=");
-            serialInterface->writeString(buffer);
-            serialInterface->writeString("\n");
-        } else {
-        	this->reportResult(result);
-        }
-        return result;
+        return this->listProperty(node, prop);
     case SET:
         if (prop->accessLevel != PropAccessLevel_ReadWrite) {
             return ProtocolResult_InvalidFunc;
@@ -244,36 +234,41 @@ void ProtocolParser::listNode(Node *node) {
     const Property_t** props = node->getProperties();
     unsigned propsCount = node->getPropertiesCount();
     for (uint16_t i = 0; i < propsCount; i++) {
-        char buffer[256];
-        char *s = buffer;
-        if (props[i]->accessLevel == PropAccessLevel_ReadWrite) {
-        	strcpy(s, "PW_");
-        	s+=3;
-        } else {
-        	strcpy(s, "P_");
-        	s+=2;
-        }
-        strcpy(s, Property_TypeToStr(props[i]->type));
-        strcat(s, " ");
-        strcat(s, props[i]->name);
-    	s += strlen(s);
-        if (props[i]->accessLevel != PropAccessLevel_Invokable) {
-            *s = '=';
-            s++;
-
-            ProtocolResult_t result = getProperty(node, props[i], s);
-            if (result != ProtocolResult_Ok) {
-                serialInterface->writeString(resultToStr(result));
-                continue;
-            }
-        }
-        strcat(s, "\n");
-        serialInterface->writeString(buffer);
+        listProperty(node, props[i]);
     }
     serialInterface->writeString("}\n");
 }
 
-ProtocolResult_t ProtocolParser::getProperty(Node *node, const Property_t *prop, char* value) {
+ProtocolResult_t ProtocolParser::listProperty(const Node *node, const Property_t *prop) {
+	ProtocolResult_t result = ProtocolResult_InternalError;
+	char buffer[256];
+	char *s = buffer;
+	if (prop->accessLevel == PropAccessLevel_ReadWrite) {
+		strcpy(s, "PW_");
+		s+=3;
+	} else {
+		strcpy(s, "P_");
+		s+=2;
+	}
+	strcpy(s, Property_TypeToStr(prop->type));
+	strcat(s, " ");
+	strcat(s, prop->name);
+	s += strlen(s);
+	if (prop->accessLevel != PropAccessLevel_Invokable) {
+		*s = '=';
+		s++;
+
+		result = getProperty(node, prop, s);
+		if (result != ProtocolResult_Ok) {
+			serialInterface->writeString(resultToStr(result));
+		}
+	}
+	strcat(s, "\n");
+	serialInterface->writeString(buffer);
+	return result;
+}
+
+ProtocolResult_t ProtocolParser::getProperty(const Node *node, const Property_t *prop, char* value) {
     node = (Node*)((int)node - prop->nodeOffset);
     ProtocolResult_t result = ProtocolResult_InternalError;
 
@@ -390,7 +385,7 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
     return result;
 }
 
-ProtocolResult_t ProtocolParser::getBinaryProperty(Node *node, const Property_t *prop, char* value) {
+ProtocolResult_t ProtocolParser::getBinaryProperty(const Node *node, const Property_t *prop, char* value) {
 	uint8_t *ptr = NULL;
 	uint16_t length = 0;
 	ProtocolResult_t result = prop->binaryGet(node, (void**) &ptr, &length);
