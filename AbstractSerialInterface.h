@@ -30,6 +30,12 @@ public:
     virtual bool writeBytes(const uint8_t* bytes, uint16_t length) = 0;
     // returns true on success
     virtual bool writeString(const char* str);
+
+    // alias for writeString
+    AbstractSerialInterface& operator<<(const char* str) {
+    	writeString(str);
+    	return *this;
+    }
 };
 
 #endif /* PROTOCOL_ABSTRACTSERIALINTERFACE_H_ */
