@@ -12,7 +12,7 @@
 
 class VcpSerialInterface: public AbstractSerialInterface {
 private:
-	char *txBuffer;
+	uint8_t *txBuffer;
 	uint16_t txPosition;
 	uint16_t txOverrunCount;
 	VcpSerialInterface();

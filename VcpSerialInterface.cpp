@@ -20,7 +20,7 @@ static int8_t SerialIface_CDC_Receive_FS (uint8_t* Buf, uint32_t *Len);
 LOG_TAG(VCP);
 
 VcpSerialInterface::VcpSerialInterface() {
-	txBuffer = new char[TX_BUFFER_SIZE];
+	txBuffer = new uint8_t[TX_BUFFER_SIZE];
 	txPosition = 0;
 	txOverrunCount = 0;
 }
@@ -46,11 +46,28 @@ bool VcpSerialInterface::isOpen() {
 }
 
 void VcpSerialInterface::handler() {
+	static const uint16_t PacketSize = 6;	//TODO set 256 after CSW is ready to handle this
+
 	if (txPosition != 0) {
-		CDC_Transmit_FS((uint8_t*) txBuffer, txPosition);
+		// first packet start address
+		uint8_t* data = txBuffer;
+		while(data < &txBuffer[txPosition]) {
+			// packet length is number of remaining bytes or max packet size
+			uint16_t packetLen = MIN(PacketSize, &txBuffer[txPosition] - data);
+			// transmit current packet (!non-blocking call!)
+			CDC_Transmit_FS(data, packetLen);
+
+			// get handle to USB CDC device
+			USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*) hUsbDevice_0->pClassData;
+			// wait for CDC to finish transmission
+			while (hcdc->TxState == 1);
+
+			data += packetLen;
+		}
 		txPosition = 0;
 	}
 
+	// create log message that will be sent out on the next call
 	if (txOverrunCount > 0) {
 		Log::Error(VCP, "TX overrun", txOverrunCount);
 		txOverrunCount = 0;
