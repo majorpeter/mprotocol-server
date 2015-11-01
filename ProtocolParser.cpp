@@ -57,7 +57,7 @@ void ProtocolParser::handler() {
 			// is LSB a changed property
 			if (mask & 0x01) {
 				serialInterface->writeString("CHG ");
-				serialInterface->writeString(subscribedNodes[i]->getName());
+				subscribedNodes[i]->printPathRecursively(serialInterface);
 				serialInterface->writeBytes((uint8_t*) ".", 1);
 				serialInterface->writeString(subscribedNodes[i]->getProperties()[propIndex]->name);
 				serialInterface->writeBytes((uint8_t*) "\n", 1);
