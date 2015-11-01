@@ -10,7 +10,7 @@
 #include "AbstractUpLayer.h"
 #include <Log/Log.h>
 
-#define TX_BUFFER_SIZE 256
+#define TX_BUFFER_SIZE 512
 
 /// CDC device access
 extern USBD_HandleTypeDef *hUsbDevice_0;
@@ -46,7 +46,8 @@ bool VcpSerialInterface::isOpen() {
 }
 
 void VcpSerialInterface::handler() {
-	static const uint16_t PacketSize = 6;	//TODO set 256 after CSW is ready to handle this
+	// USB CDC internal TX buffer limitation
+	static const uint16_t PacketSize = 256;
 
 	if (txPosition != 0) {
 		// first packet start address
