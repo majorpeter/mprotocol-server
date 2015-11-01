@@ -91,7 +91,7 @@ void ProtocolParser::handler() {
 
 ProtocolResult_t ProtocolParser::parseString(char *s) {
     // decode protocol function
-    enum {UNKNOWN, GET, SET, CALL, MAN} decodedFunc = UNKNOWN;
+    enum {UNKNOWN, GET, SET, CALL, OPEN, CLOSE, MAN} decodedFunc = UNKNOWN;
 
     if (strncmp("GET ", s, 4) == 0) {
         decodedFunc = GET;
@@ -102,6 +102,12 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
     } else if (strncmp("CALL ", s, 5) == 0) {
         decodedFunc = CALL;
         s += 5;
+    } else if (strncmp("OPEN ", s, 5) == 0) {
+        decodedFunc = OPEN;
+        s += 5;
+    } else if (strncmp("CLOSE ", s, 6) == 0) {
+        decodedFunc = CLOSE;
+        s += 6;
 	} else if (strncmp("MAN ", s, 4) == 0) {
 		decodedFunc = MAN;
 		s += 4;
@@ -135,15 +141,22 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
         return ProtocolResult_NodeNotFound;
     }
 
+    // Node found by name, end of command
     if (s[0] == '\0') {
-        if (decodedFunc == GET) {
+        switch (decodedFunc) {
+        case GET:
             listNode(node);
             return ProtocolResult_Ok;
-        } else {
+        case OPEN:
+        	return addNodeToSubscribed(node);
+        case CLOSE:
+        	return removeNodeFromSubscribed(node);
+        default:
             return ProtocolResult_InvalidFunc;
         }
     }
 
+    // check for Property in Node (after '.')
     p = strchr(s, '.');
     if (p == NULL) {
         if (decodedFunc == GET) {
@@ -403,6 +416,7 @@ ProtocolResult_t ProtocolParser::getBinaryProperty(const Node *node, const Prope
 const char* ProtocolParser::resultToStr(ProtocolResult_t result) {
     switch (result) {
     case ProtocolResult_Ok: return "Ok";
+    case ProtocolResult_Failed: return "Failed";
     case ProtocolResult_UnknownFunc: return "Unknown function";
     case ProtocolResult_NodeNotFound: return "Node not found";
     case ProtocolResult_PropertyNotFound: return "Property not found";
@@ -416,15 +430,38 @@ const char* ProtocolParser::resultToStr(ProtocolResult_t result) {
 
 /**
  * subscribe to async change messages for node
- * @return true if added to array, false if array already full
+ * @return ProtocolResult_Ok, if added to array, ProtocolResult_Failed if array already full
  */
-bool ProtocolParser::subscribeToNode(Node *node) {
-	if (this->subscribedNodeCount == MAX_SUBSCRIBED_NODES) {
-		return false;
+ProtocolResult_t ProtocolParser::addNodeToSubscribed(Node *node) {
+	if (subscribedNodeCount == MAX_SUBSCRIBED_NODES) {
+		return ProtocolResult_Failed;
 	}
 
-	this->subscribedNodes[this->subscribedNodeCount] = node;
-	this->subscribedNodeCount++;
+	subscribedNodes[subscribedNodeCount] = node;
+	subscribedNodeCount++;
 
-	return true;
+	return ProtocolResult_Ok;
+}
+
+/**
+ * unsubscribe from async change messages for node
+ * @return ProtocolResult_Ok, if removed from array, ProtocolResult_Failed if not found in array
+ */
+ProtocolResult_t ProtocolParser::removeNodeFromSubscribed(Node *node) {
+	ProtocolResult_t result = ProtocolResult_Failed;
+	uint16_t i;
+	for (i = 0; i < subscribedNodeCount; i++) {
+		if (subscribedNodes[i] == node ) {
+			result = ProtocolResult_Ok;
+			break;
+		}
+	}
+
+	if (result == ProtocolResult_Ok) {
+		subscribedNodeCount--;
+		for (; i < subscribedNodeCount; i++) {
+			subscribedNodes[i] = subscribedNodes[i+1];
+		}
+	}
+	return result;
 }

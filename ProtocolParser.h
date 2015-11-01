@@ -31,7 +31,8 @@ public:
     void reportResult(ProtocolResult_t errorCode);
     void writeManual(const Node *node, const Property_t *property);
     static const char* resultToStr(ProtocolResult_t result);
-    bool subscribeToNode(Node* node);
+    ProtocolResult_t addNodeToSubscribed(Node *node);
+    ProtocolResult_t removeNodeFromSubscribed(Node *node);
 };
 
 #endif /* PROTOCOLPARSER_H_ */
