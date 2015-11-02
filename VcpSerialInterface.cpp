@@ -49,6 +49,10 @@ void VcpSerialInterface::handler() {
 	// USB CDC internal TX buffer limitation
 	static const uint16_t PacketSize = 256;
 
+	if (hUsbDevice_0 == NULL) {
+		return;	// cannot use VCP before the USB device is connected
+	}
+
 	if (txPosition != 0) {
 		// first packet start address
 		uint8_t* data = txBuffer;
