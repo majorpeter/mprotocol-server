@@ -78,8 +78,11 @@ void ProtocolParser::handleSubscriptions() {
 	}
 }
 
+/**
+ * parse received lines (commands)
+ * @note also moves an incomplete command from the buffer to the start position of buffer
+ */
 void ProtocolParser::handleReceivedCommands() {
-	// parse received lines
 	int rxLineStart = 0;
 	while (1) {
 		// find \n or \r at end of line
@@ -95,22 +98,20 @@ void ProtocolParser::handleReceivedCommands() {
 		*nl = '\0';
 
 		// parse current line
-		printf("Parse line: \"%s\"\n", &rxBuffer[rxLineStart]);
 		ProtocolResult_t result = parseString(&rxBuffer[rxLineStart]);
 		if (result != ProtocolResult_Ok) {
 			reportResult(result);
 		}
 
-		// update next line start address
+		// update next line start address, the next byte after '\n'
 		rxLineStart = (nl - rxBuffer) + 1;
 	}
 
-	// move last incomplete command to buffer start
-//TODO lock buffer for this?
+	// move last incomplete command to buffer start (if not already the first bytes)
+	//TODO lock buffer for this?
 	if ((rxLineStart > 0) && (rxPosition != 0)) {
 		if (rxPosition > rxLineStart) {
 			rxPosition = rxPosition - rxLineStart;
-			printf("Compacting rxbuf: start=%d to len=%d\n", rxLineStart, rxPosition);
 			memcpy(rxBuffer, &rxBuffer[rxLineStart], rxPosition);
 		} else {
 			rxPosition = 0; // all lines parsed, buffer is empty
@@ -122,7 +123,7 @@ void ProtocolParser::handler() {
 	this->handleSubscriptions();
 	this->handleReceivedCommands();
 
-	//TODO readd Log::getInstance()->hanlder();
+	Log::getInstance()->handler();
 	serialInterface->handler();
 }
 
