@@ -47,8 +47,11 @@ bool ProtocolParser::receiveBytes(const uint8_t* bytes, uint16_t len) {
 	return true;
 }
 
-void ProtocolParser::handler() {
-	// handle change notifications @subscriptions
+/**
+ * handle change notifications @subscriptions
+ * @note sends CHG messages about changes
+ */
+void ProtocolParser::handleSubscriptions() {
 	for (uint16_t i = 0; i < subscribedNodeCount; i++) {
 		uint32_t mask = subscribedNodes[i]->getAndClearPropChangeMask();
 		uint8_t propIndex = 0;
@@ -73,9 +76,11 @@ void ProtocolParser::handler() {
 		// write all CHG's from current node
 		serialInterface->handler();
 	}
+}
 
+void ProtocolParser::handleReceivedCommands() {
 	// parse received lines
-	uint16_t rxLineStart = 0;
+	int rxLineStart = 0;
 	while (1) {
 		// find \n or \r at end of line
 		char *nl = (char*) memchr(rxBuffer + rxLineStart, '\n', rxPosition - rxLineStart);
@@ -111,6 +116,11 @@ void ProtocolParser::handler() {
 			rxPosition = 0; // all lines parsed, buffer is empty
 		}
 	}
+}
+
+void ProtocolParser::handler() {
+	this->handleSubscriptions();
+	this->handleReceivedCommands();
 
 	//TODO readd Log::getInstance()->hanlder();
 	serialInterface->handler();
