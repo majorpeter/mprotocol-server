@@ -94,6 +94,12 @@ void ProtocolParser::handleReceivedCommands() {
 			}
 		}
 
+		// skip empty lines
+		if (&rxBuffer[rxLineStart] == nl) {
+			rxLineStart++;
+			continue;
+		}
+
 		// change new line char to null (terminate string)
 		*nl = '\0';
 
