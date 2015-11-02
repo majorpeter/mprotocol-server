@@ -71,6 +71,7 @@ void ProtocolParser::handler() {
 			propIndex++;
 		}
 	}
+	serialInterface->handler();
 
 	char *nl = (char*) memchr(rxBuffer, '\n', rxPosition);
 	if (nl == NULL) {
@@ -433,11 +434,17 @@ const char* ProtocolParser::resultToStr(ProtocolResult_t result) {
 
 /**
  * subscribe to async change messages for node
- * @return ProtocolResult_Ok, if added to array, ProtocolResult_Failed if array already full
+ * @return ProtocolResult_Ok, if added to array, ProtocolResult_Failed if array already exists or array full
  */
 ProtocolResult_t ProtocolParser::addNodeToSubscribed(Node *node) {
 	if (subscribedNodeCount == MAX_SUBSCRIBED_NODES) {
 		return ProtocolResult_Failed;
+	}
+
+	for (uint16_t i = 0; i < subscribedNodeCount; i++) {
+		if (subscribedNodes[i] == node ) {
+			return ProtocolResult_Failed;
+		}
 	}
 
 	subscribedNodes[subscribedNodeCount] = node;
