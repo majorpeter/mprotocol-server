@@ -36,6 +36,10 @@ public:
     	writeString(str);
     	return *this;
     }
+    AbstractSerialInterface& operator<<(char c) {
+        	writeBytes((uint8_t*) &c, 1);
+        	return *this;
+        }
 };
 
 #endif /* PROTOCOL_ABSTRACTSERIALINTERFACE_H_ */
