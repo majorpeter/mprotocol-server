@@ -70,26 +70,49 @@ void ProtocolParser::handler() {
 			mask = mask >> 1;
 			propIndex++;
 		}
+		// write all CHG's from current node
+		serialInterface->handler();
 	}
-	serialInterface->handler();
 
-	char *nl = (char*) memchr(rxBuffer, '\n', rxPosition);
-	if (nl == NULL) {
-		nl = (char*) memchr(rxBuffer, '\r', rxPosition);
+	// parse received lines
+	uint16_t rxLineStart = 0;
+	while (1) {
+		// find \n or \r at end of line
+		char *nl = (char*) memchr(rxBuffer + rxLineStart, '\n', rxPosition - rxLineStart);
 		if (nl == NULL) {
-			return;
+			nl = (char*) memchr(rxBuffer + rxLineStart, '\r', rxPosition - rxLineStart);
+			if (nl == NULL) {
+				break;
+			}
+		}
+
+		// change new line char to null (terminate string)
+		*nl = '\0';
+
+		// parse current line
+		printf("Parse line: \"%s\"\n", &rxBuffer[rxLineStart]);
+		ProtocolResult_t result = parseString(&rxBuffer[rxLineStart]);
+		if (result != ProtocolResult_Ok) {
+			reportResult(result);
+		}
+
+		// update next line start address
+		rxLineStart = (nl - rxBuffer) + 1;
+	}
+
+	// move last incomplete command to buffer start
+//TODO lock buffer for this?
+	if ((rxLineStart > 0) && (rxPosition != 0)) {
+		if (rxPosition > rxLineStart) {
+			rxPosition = rxPosition - rxLineStart;
+			printf("Compacting rxbuf: start=%d to len=%d\n", rxLineStart, rxPosition);
+			memcpy(rxBuffer, &rxBuffer[rxLineStart], rxPosition);
+		} else {
+			rxPosition = 0; // all lines parsed, buffer is empty
 		}
 	}
 
-	// change new line char to null (terminate string)
-	*nl = '\0';
-	rxPosition = 0; //TODO allow multiple commands in 1 handler
-	ProtocolResult_t result = parseString(rxBuffer);
-	if (result != ProtocolResult_Ok) {
-		reportResult(result);
-	}
-
-	Log::getInstance()->hanlder();
+	//TODO readd Log::getInstance()->hanlder();
 	serialInterface->handler();
 }
 
