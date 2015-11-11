@@ -244,14 +244,18 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
             return ProtocolResult_InvalidFunc;
         }
         result = setProperty(node, prop, s);
-        this->reportResult(result);
+        if (result == ProtocolResult_Ok) {
+        	this->reportResult(ProtocolResult_Ok);
+        }
         return result;
     case CALL:
         if (prop->type != PropertyType_Method) {
             return ProtocolResult_InvalidFunc;
         }
         result = setProperty(node, prop, s);
-        this->reportResult(result);
+        if (result == ProtocolResult_Ok) {
+        	this->reportResult(ProtocolResult_Ok);
+        }
         return result;
     case MAN:
     	this->writeManual(node, prop);
