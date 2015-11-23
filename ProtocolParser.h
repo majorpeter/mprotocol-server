@@ -27,6 +27,7 @@ public:
     ProtocolParser(AbstractSerialInterface* serialInterface);
     virtual ~ProtocolParser();
     static ProtocolParser* getExistingInstance();
+    void switchSerialInterface(AbstractSerialInterface* interface);
     void listen();
     virtual bool receiveBytes(const uint8_t* bytes, uint16_t len);
     void handler();

@@ -90,6 +90,9 @@ bool VcpSerialInterface::writeBytes(const uint8_t* bytes, uint16_t length) {
 }
 
 bool VcpSerialInterface::receiveBytes(const uint8_t* bytes, uint16_t len) {
+	if (uplayer == NULL) {
+		return false;
+	}
 	return (uplayer->receiveBytes(bytes, len));
 }
 

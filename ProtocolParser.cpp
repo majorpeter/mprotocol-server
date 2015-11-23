@@ -18,6 +18,7 @@ ProtocolParser::ProtocolParser(AbstractSerialInterface* serialInterface): serial
 
 	//TODO check if it is null now
 	instance = this;
+	serialInterface->setUpLayer(this);
 }
 
 ProtocolParser::~ProtocolParser() {
@@ -32,6 +33,16 @@ ProtocolParser::~ProtocolParser() {
  */
 ProtocolParser* ProtocolParser::getExistingInstance() {
 	return instance;
+}
+
+void ProtocolParser::switchSerialInterface(AbstractSerialInterface* interface) {
+	if (this->serialInterface != NULL) {
+		this->serialInterface->setUpLayer(NULL);
+	}
+
+	rxPosition = 0;
+	this->serialInterface = interface;
+	interface->setUpLayer(this);
 }
 
 void ProtocolParser::listen() {
