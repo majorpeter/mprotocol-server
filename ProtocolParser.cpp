@@ -365,13 +365,13 @@ ProtocolResult_t ProtocolParser::getProperty(const Node *node, const Property_t 
     case PropertyType_Int32:
         result = prop->intGet(node, (int32_t*)value);
         if (result == ProtocolResult_Ok) {
-            sprintf(value, "%ld", *(int32_t*)value);
+            sprintf(value, "%ld", (long int) *(int32_t*)value);
         }
         break;
     case PropertyType_Uint32:
         result = prop->uintGet(node, (uint32_t*)value);
         if (result == ProtocolResult_Ok) {
-            sprintf(value, "%lu", *(uint32_t*)value);
+            sprintf(value, "%lu", (long unsigned int) *(uint32_t*)value);
         }
         break;
     case PropertyType_Float32:
