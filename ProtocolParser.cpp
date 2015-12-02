@@ -440,21 +440,36 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
     case PropertyType_Bool:
         result = prop->boolSet(node, value[0] != '0');
         break;
-    case PropertyType_Int32:
+    case PropertyType_Int32: {
         int32_t i;
         sscanf(value, "%ld", &i);
         result = prop->intSet(node, i);
         break;
+    }
     case PropertyType_Uint32:
         uint32_t j;
         sscanf(value, "%lu", &j);
         result = prop->uintSet(node, j);
         break;
-    case PropertyType_Float32:
-        float32_t f;
-        sscanf(value, "%f", &f);
+    case PropertyType_Float32: {
+        int fint, ffrac;
+        float f = 0.f;
+        int res = sscanf(value, "%d.%d", &fint, &ffrac);
+        if (res == 2) {
+        	int fracdivision = 1;
+        	char *p = strchr(value, '.') + 1;	// cannot be NULL, because sscanf found it
+        	while (*p != '\0') {
+        		fracdivision *= 10;
+        		p++;
+        	}
+        	f = (float) fint + (float) ffrac / (float) fracdivision;
+        } else if (res == 1) {
+        	f = (float) fint;
+        } else
+        	break;
         result = prop->floatSet(node, f);
         break;
+    }
     case PropertyType_String:
         result = prop->stringSet(node, value);
         break;
