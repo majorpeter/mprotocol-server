@@ -374,31 +374,30 @@ ProtocolResult_t ProtocolParser::getProperty(const Node *node, const Property_t 
             sprintf(value, "%lu", (long unsigned int) *(uint32_t*)value);
         }
         break;
-    case PropertyType_Float32:
-        result = prop->floatGet(node, (float32_t*)value);
+    case PropertyType_Float32: {
+    	float f;
+        result = prop->floatGet(node, &f);
         if (result == ProtocolResult_Ok) {
         	/*
         	 * this routine prints the float number with 4 frac. digits precision
         	 * the printf("%f") did not work with this clib.
         	 */
-        	float f = *(float32_t*)value;	// make a local copy
-        	int pos = 0;					// position in result string
 
         	// print '-' if negative
         	if (f < 0.f) {
-        		value[0] = '-';
-        		pos = 1;
+        		*value = '-';
+        		value++;
         		f = -f;
         	}
 
         	// print integer part and substract it
-        	pos = sprintf(value + pos, "%0d", (int) f);
+        	value += sprintf(value, "%0d", (int) f);
             f -= (float) (int) f;
 
             // print decimal point if the fractional part is big enough
             if (f > 0.0001f) {
-            	value[pos] = '.';
-            	pos++;
+            	*value = '.';
+            	value++;
             }
 
             // print and substract the first 4 fractional digits
@@ -407,20 +406,21 @@ ProtocolResult_t ProtocolParser::getProperty(const Node *node, const Property_t 
             	// get the next digit left from the decimal point
             	f *= 10;
             	// this is a lot faster than sprintf for 1 digit
-            	value[pos] = (char) ('0' + (int) f);
+            	*value = (char) ('0' + (int) f);
             	// clear integer part
             	f -= (float) (int) f;
 
-            	pos++;
+            	value++;
             	fracDigits++;
             	if (fracDigits == 4) {
             		break;
             	}
             }
             // always close the string
-            value[pos] = '\0';
+            *value = '\0';
         }
         break;
+    }
     case PropertyType_String:
         result = prop->stringGet(node, value);
         break;
