@@ -441,13 +441,13 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
         result = prop->boolSet(node, value[0] != '0');
         break;
     case PropertyType_Int32: {
-        int32_t i;
+        long int i;
         sscanf(value, "%ld", &i);
         result = prop->intSet(node, i);
         break;
     }
     case PropertyType_Uint32:
-        uint32_t j;
+        unsigned long int j;
         sscanf(value, "%lu", &j);
         result = prop->uintSet(node, j);
         break;
@@ -457,7 +457,7 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
         int res = sscanf(value, "%d.%d", &fint, &ffrac);
         if (res == 2) {
         	int fracdivision = 1;
-        	char *p = strchr(value, '.') + 1;	// cannot be NULL, because sscanf found it
+        	const char *p = strchr(value, '.') + 1;	// cannot be NULL, because sscanf found it
         	while (*p != '\0') {
         		fracdivision *= 10;
         		p++;
