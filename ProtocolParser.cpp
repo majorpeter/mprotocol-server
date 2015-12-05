@@ -358,7 +358,7 @@ ProtocolResult_t ProtocolParser::getProperty(const Node *node, const Property_t 
     case PropertyType_Bool:
         result = prop->boolGet(node, (bool*)value);
         if (result == ProtocolResult_Ok) {
-            value[0] = value[0] ? '1' : '0';
+            value[0] = (*(bool*)value) ? '1' : '0';
             value[1] = '\0';
         }
         break;
