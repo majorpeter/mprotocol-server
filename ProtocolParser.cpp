@@ -82,7 +82,7 @@ void ProtocolParser::handleSubscriptions() {
 				serialInterface->writeString(subscribedNodes[i]->getProperties()[propIndex]->name);
 				serialInterface->writeBytes((uint8_t*) "=", 1);
 				char buffer[256];	//TODO buffer size? maybe a common buffer?
-				getProperty(subscribedNodes[i], subscribedNodes[i]->getProperties()[propIndex], buffer);
+				getProperty(subscribedNodes[i], subscribedNodes[i]->getProperties()[propIndex], buffer);	//TODO print instead
 				*serialInterface << buffer;
 				serialInterface->writeBytes((uint8_t*) "\n", 1);
 			}
@@ -340,6 +340,23 @@ ProtocolResult_t ProtocolParser::listProperty(const Node *node, const Property_t
 		*s = '=';
 		s++;
 
+		if (prop->type == PropertyType_Binary) {
+			uint8_t *ptr = NULL;
+			uint16_t length = 0;
+			result = prop->binaryGet(node, (void**) &ptr, &length);
+			if (result == ProtocolResult_Ok) {
+				serialInterface->writeString(buffer);
+				while (length > 0) {
+					char buf[3];
+					sprintf(buf, "%02X", *ptr);
+					serialInterface->writeBytes((uint8_t*) buf, 2);
+					ptr++;
+					length--;
+				}
+				serialInterface->writeBytes((uint8_t*) "\n", 1);
+			}
+			return result;
+		}
 		result = getProperty(node, prop, s);
 		if (result != ProtocolResult_Ok) {
 			serialInterface->writeString(resultToStr(result));
