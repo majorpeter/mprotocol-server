@@ -151,6 +151,8 @@ void ProtocolParser::handler() {
 }
 
 ProtocolResult_t ProtocolParser::parseString(char *s) {
+    ProtocolResult_t result = ProtocolResult_InternalError;
+
     // decode protocol function
     enum {UNKNOWN, GET, SET, CALL, OPEN, CLOSE, MAN} decodedFunc = UNKNOWN;
 
@@ -202,6 +204,13 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
         }
         s = p+1;
     }
+
+    // there is no property if there is no '.' in string
+    if ((s[0] != '\0') && (strchr(s, '.') == NULL)) {
+        node = node->getChildByName(s);
+        s[0] = '\0';    // end of string, there is no property
+    }
+
     if (node == NULL) {
         return ProtocolResult_NodeNotFound;
     }
@@ -213,9 +222,17 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
             listNode(node);
             return ProtocolResult_Ok;
         case OPEN:
-        	return addNodeToSubscribed(node);
+        	result = addNodeToSubscribed(node);
+            if (result == ProtocolResult_Ok) {
+                this->reportResult(ProtocolResult_Ok);
+            }
+            return result;
         case CLOSE:
-        	return removeNodeFromSubscribed(node);
+        	result = removeNodeFromSubscribed(node);
+            if (result == ProtocolResult_Ok) {
+                this->reportResult(ProtocolResult_Ok);
+            }
+            return result;
         default:
             return ProtocolResult_InvalidFunc;
         }
@@ -224,15 +241,6 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
     // check for Property in Node (after '.')
     p = strchr(s, '.');
     if (p == NULL) {
-        if (decodedFunc == GET) {
-            node = node->getChildByName(s);
-            if (node != NULL) {
-                listNode(node);
-                return ProtocolResult_Ok;
-            } else {
-                return ProtocolResult_NodeNotFound;
-            }
-        }
         return ProtocolResult_SyntaxError;
     }
     *p = '\0';
@@ -252,7 +260,6 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
         return ProtocolResult_PropertyNotFound;
     }
 
-    ProtocolResult_t result;
     switch (decodedFunc) {
     default:
     case GET:
