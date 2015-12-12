@@ -1,4 +1,6 @@
 #include <Protocol/StdioSerialInterface.h>
+#include <Protocol/ProtocolParser.h>
+#include <Log/Log.h>
 #include "AbstractUpLayer.h"
 #include <stdio.h>
 
@@ -16,6 +18,7 @@ void StdioSerialInterface::listen() {
         uplayer->receiveBytes((uint8_t*) buffer, strlen(buffer));
         ProtocolParser::getExistingInstance()->handler();	// TODO remove this dirty hack!!
         ProtocolParser::getExistingInstance()->handleSubscriptions();	//TODO this too. :)
+        Log::getInstance()->handler();                      //TODO pretty much the same deal
     }
 }
 
