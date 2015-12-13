@@ -478,6 +478,11 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
     case PropertyType_Float32: {
         int fint, ffrac;
         float f = 0.f;
+        bool isNegative = false;
+        if (value[0] == '-') {
+            isNegative = true;
+            value++;
+        }
         int res = sscanf(value, "%d.%d", &fint, &ffrac);
         if (res == 2) {
         	int fracdivision = 1;
@@ -491,6 +496,9 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
         	f = (float) fint;
         } else
         	break;
+        if (isNegative) {
+            f = 0.f - f;
+        }
         result = prop->floatSet(node, f);
         break;
     }
