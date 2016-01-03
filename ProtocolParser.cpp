@@ -346,6 +346,7 @@ ProtocolResult_t ProtocolParser::listProperty(const Node *node, const Property_t
 	if (prop->accessLevel != PropAccessLevel_Invokable) {
 		*s = '=';
 		s++;
+		*s = '\0';	// just to make sure
 
 		if (prop->type == PropertyType_Binary) {
 			uint8_t *ptr = NULL;
@@ -508,8 +509,17 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
     case PropertyType_Method:
         result = prop->methodInvoke(node, value);
         break;
-    case PropertyType_Binary:
-    	return ProtocolResult_InvalidFunc;	//TODO implement bin setter
+    case PropertyType_Binary: {
+    	size_t length = strlen(value);
+    	if (length & 0x01) {
+    		return ProtocolResult_InvalidValue;
+    	}
+    	uint8_t data[length / 2];
+    	if (!this->binaryStringToArray(value, data)) {
+			return  ProtocolResult_InvalidValue;
+    	}
+		result = prop->binarySet(node, data, length / 2);
+    }
     }
     return result;
 }
@@ -586,4 +596,36 @@ ProtocolResult_t ProtocolParser::removeNodeFromSubscribed(Node *node) {
 		}
 	}
 	return result;
+}
+
+uint8_t ProtocolParser::charToByte(char c) {
+	if (c < '0') return 0xff;
+	if (c <= '9') {
+		return c - '0';
+	}
+	if (c < 'A') {
+		return 0xff;
+	}
+	if (c <= 'F') {
+		return c - 'A' + 0x0a;
+	}
+	return 0xff;
+}
+
+/**
+ * parses hex string
+ * @return true if the string was valid
+ */
+bool ProtocolParser::binaryStringToArray(const char* from, uint8_t* to) {
+	while (from[0] != '\0') {
+		uint8_t val0 = charToByte(from[0]);
+		uint8_t val1 = charToByte(from[1]);
+		if ((val0 == 0xff) || (val1 == 0xff)) {
+			return false;
+		}
+		*to = (val0 << 4) | val1;
+		from += 2;
+		to++;
+	}
+	return true;
 }
