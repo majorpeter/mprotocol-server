@@ -104,11 +104,14 @@ void ProtocolParser::handleReceivedCommands() {
 	while (1) {
 		// find \n or \r at end of line
 		char *nl = (char*) memchr(rxBuffer + rxLineStart, '\n', rxPosition - rxLineStart);
+		char *cr = (char*) memchr(rxBuffer + rxLineStart, '\r', rxPosition - rxLineStart);
 		if (nl == NULL) {
-			nl = (char*) memchr(rxBuffer + rxLineStart, '\r', rxPosition - rxLineStart);
+			nl = cr;
 			if (nl == NULL) {
 				break;
 			}
+		} else if (cr != NULL) {
+			*cr = '\0';
 		}
 
 		// skip empty lines
