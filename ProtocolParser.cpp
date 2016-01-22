@@ -17,7 +17,9 @@ ProtocolParser::ProtocolParser(AbstractSerialInterface* serialInterface): serial
 	subscribedNodes = new Node*[MAX_SUBSCRIBED_NODES];
 	subscribedNodeCount = 0;
 
-	//TODO check if it is null now
+	if (instance != NULL) {
+		exit(1);	// kill application if invoked twice
+	}
 	instance = this;
 	serialInterface->setUpLayer(this);
 	Timeout::set(50,ProtocolParser::periodicHandle,TIMEOUT_MODE_NON_BLOCKING|TIMEOUT_MODE_AUTORESTART);
