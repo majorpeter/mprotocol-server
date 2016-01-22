@@ -80,8 +80,6 @@ void ServerSocketInterface::serverThreadFunction() {
 		while ((read_size = recv(client_sock, client_message, buffer_size, 0)) > 0) {
 			if (this->uplayer != nullptr) {
 				this->uplayer->receiveBytes(client_message, read_size);
-				ProtocolParser::getExistingInstance()->handler();	// TODO remove this dirty hack!!
-				ProtocolParser::getExistingInstance()->handleSubscriptions();	//TODO this too. :)
 			}
 		}
 
