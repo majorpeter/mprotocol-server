@@ -18,7 +18,7 @@ void StdioSerialInterface::listen() {
         uplayer->receiveBytes((uint8_t*) buffer, strlen(buffer));
         ProtocolParser::getExistingInstance()->handler();	// TODO remove this dirty hack!!
         ProtocolParser::getExistingInstance()->handleSubscriptions();	//TODO this too. :)
-        Log::getInstance()->handler();                      //TODO pretty much the same deal
+        Log::getInstance()->handler(this);   //TODO pretty much the same deal
     }
 }
 

@@ -51,6 +51,10 @@ void ProtocolParser::switchSerialInterface(AbstractSerialInterface* interface) {
 	interface->setUpLayer(this);
 }
 
+AbstractSerialInterface* ProtocolParser::getInterface() {
+	return this->serialInterface;
+}
+
 void ProtocolParser::listen() {
     serialInterface->listen();
 }
@@ -149,7 +153,7 @@ void ProtocolParser::handler() {
 	//this->handleSubscriptions();
 	this->handleReceivedCommands();
 
-	Log::getInstance()->handler();
+	Log::getInstance()->handler(serialInterface);
 	serialInterface->handler();
 }
 

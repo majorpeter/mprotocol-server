@@ -32,6 +32,7 @@ public:
 
     void switchSerialInterface(AbstractSerialInterface* interface);
     static void periodicHandle();
+    AbstractSerialInterface* getInterface();
     void listen();
     virtual bool receiveBytes(const uint8_t* bytes, uint16_t len);
     void handler();
