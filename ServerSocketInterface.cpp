@@ -31,6 +31,12 @@ ServerSocketInterface::ServerSocketInterface(uint16_t port) {
 	server.sin_addr.s_addr = INADDR_ANY;
 	server.sin_port = htons(port);
 
+	//Try to reuse the socket
+	int yes = 1;
+	if (setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
+		perror("setsockopt");
+	}
+
 	//Bind
 	if (bind(socket_desc, (struct sockaddr *) &server, sizeof(server)) < 0) {
 		//print the error message
