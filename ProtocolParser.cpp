@@ -3,6 +3,7 @@
 #include "Log/Log.h"
 #include <cstdio>
 #include <cstring>
+#include <cstdlib>
 #include <Scheduler/Scheduler.h>
 
 #define RX_BUFFER_SIZE 256
