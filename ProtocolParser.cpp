@@ -9,6 +9,12 @@
 #define RX_BUFFER_SIZE 256
 #define MAX_SUBSCRIBED_NODES 15
 
+#ifndef SIMULATOR
+#define SUBSCRIPTION_HANDLE_PERIOD_MS 100
+#else
+#define SUBSCRIPTION_HANDLE_PERIOD_MS 1	// send update in each simulation step
+#endif
+
 ProtocolParser* ProtocolParser::instance = NULL;
 
 ProtocolParser::ProtocolParser(AbstractSerialInterface* serialInterface): serialInterface(serialInterface) {
