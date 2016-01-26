@@ -249,6 +249,9 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
                 this->reportResult(ProtocolResult_Ok);
             }
             return result;
+        case MAN:
+        	this->writeManual(node, NULL);
+        	return ProtocolResult_Ok;
         default:
             return ProtocolResult_InvalidFunc;
         }
@@ -322,7 +325,13 @@ void ProtocolParser::reportResult(ProtocolResult_t errorCode) {
 void ProtocolParser::writeManual(const Node *node, const Property_t *property) {
     serialInterface->writeBytes((uint8_t*) "MAN ", 4);
     //TODO node name maybe?
-	serialInterface->writeString(property->description);
+    if (property != NULL) {
+    	// property manual string
+    	serialInterface->writeString(property->description);
+    } else {
+    	// node description
+    	serialInterface->writeString(node->getDescription());
+    }
     serialInterface->writeBytes((uint8_t*) "\n", 1);
 }
 
