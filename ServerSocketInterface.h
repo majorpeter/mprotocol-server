@@ -9,12 +9,11 @@
 #define PROTOCOL_SERVERSOCKETINTERFACE_H_
 
 #include "AbstractSerialInterface.h"
+#ifdef LINUX
 #include <arpa/inet.h>
-
-namespace std {
-class thread;
-}
-
+#endif
+#include <thread>
+/*
 class ServerSocketInterface: public AbstractSerialInterface {
 public:
 	ServerSocketInterface(uint16_t port);
@@ -22,11 +21,13 @@ public:
     virtual void listen();
     virtual bool writeBytes(const uint8_t* bytes, uint16_t length);
 private:
+#ifdef LINUX
     struct sockaddr_in server;
+#endif
     int socket_desc;
     int client_sock;
-    std::thread* serverThread;
+    std::thread * serverThread;
     void serverThreadFunction();
 };
-
+*/
 #endif /* PROTOCOL_SERVERSOCKETINTERFACE_H_ */

@@ -10,10 +10,10 @@
 #include "ProtocolParser.h"
 #include <stdio.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <unistd.h>
 #include <thread>
-
+#ifdef LINUX
+#include <sys/socket.h>
 ServerSocketInterface::ServerSocketInterface(uint16_t port) {
 	this->serverThread = nullptr;
 	this->client_sock = 0;
@@ -101,3 +101,4 @@ void ServerSocketInterface::serverThreadFunction() {
 bool ServerSocketInterface::writeBytes(const uint8_t* bytes, uint16_t length) {
 	return write(client_sock, bytes, length) == length;
 }
+#endif
