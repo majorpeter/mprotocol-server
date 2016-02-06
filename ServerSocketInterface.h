@@ -11,23 +11,24 @@
 #include "AbstractSerialInterface.h"
 #ifdef LINUX
 #include <arpa/inet.h>
-#endif
 #include <thread>
-/*
+#endif
+
+
 class ServerSocketInterface: public AbstractSerialInterface {
 public:
 	ServerSocketInterface(uint16_t port);
 	virtual ~ServerSocketInterface();
     virtual void listen();
     virtual bool writeBytes(const uint8_t* bytes, uint16_t length);
+    void receiveBytes(const uint8_t* bytes, uint16_t length);
 private:
 #ifdef LINUX
     struct sockaddr_in server;
+    std::thread * serverThread;
 #endif
     int socket_desc;
     int client_sock;
-    std::thread * serverThread;
-    void serverThreadFunction();
 };
-*/
+
 #endif /* PROTOCOL_SERVERSOCKETINTERFACE_H_ */

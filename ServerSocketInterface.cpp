@@ -14,7 +14,79 @@
 #include <thread>
 #ifdef LINUX
 #include <sys/socket.h>
+#else
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+
+#define DEFAULT_BUFLEN 2000
+
+static ServerSocketInterface* instance = NULL;
+
+static SOCKET ListenSocket = INVALID_SOCKET;
+static SOCKET ClientSocket = INVALID_SOCKET;
+
+static void threadFunc(void*) {
+	int iSendResult;
+	char recvbuf[DEFAULT_BUFLEN];
+	int recvbuflen = DEFAULT_BUFLEN;
+
+	int iResult = listen(ListenSocket, 1);
+	if (iResult == SOCKET_ERROR) {
+		printf("listen failed with error: %d\n", WSAGetLastError());
+		closesocket(ListenSocket);
+		WSACleanup();
+		return;
+	}
+
+	ClientSocket = accept(ListenSocket, NULL, NULL);
+	if (ClientSocket == INVALID_SOCKET) {
+		printf("accept failed with error: %d\n", WSAGetLastError());
+		closesocket(ListenSocket);
+		WSACleanup();
+		return;
+	}
+
+	 do {
+
+		iResult = recv(ClientSocket, recvbuf, recvbuflen, 0);
+		if (iResult > 0) {
+			printf("Bytes received: %d\n", iResult);
+
+
+			instance->receiveBytes((uint8_t*) recvbuf, iResult);
+
+		}
+		else if (iResult == 0)
+			printf("Connection closing...\n");
+		else  {
+			printf("recv failed with error: %d\n", WSAGetLastError());
+			closesocket(ClientSocket);
+			WSACleanup();
+			return;
+		}
+
+	} while (iResult > 0);
+
+	// shutdown the connection since we're done
+	iResult = shutdown(ClientSocket, SD_SEND);
+	if (iResult == SOCKET_ERROR) {
+		printf("shutdown failed with error: %d\n", WSAGetLastError());
+		closesocket(ClientSocket);
+		WSACleanup();
+		return;
+	}
+
+	// cleanup
+	closesocket(ClientSocket);
+	WSACleanup();
+}
+#endif
+
 ServerSocketInterface::ServerSocketInterface(uint16_t port) {
+	instance = this;
+#ifdef LINUX
 	this->serverThread = nullptr;
 	this->client_sock = 0;
 
@@ -44,16 +116,72 @@ ServerSocketInterface::ServerSocketInterface(uint16_t port) {
 		return;
 	}
 	puts("bind done");
+#else
+	WSADATA wsaData;
+	int iResult;
+
+	struct addrinfo *result = NULL;
+	struct addrinfo hints;
+
+	// Initialize Winsock
+	iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
+	if (iResult != 0) {
+		printf("WSAStartup failed with error: %d\n", iResult);
+		return;
+	}
+
+	ZeroMemory(&hints, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+	hints.ai_flags = AI_PASSIVE;
+
+	// Resolve the server address and port
+	char portStr[6];
+	sprintf(portStr, "%d", port);
+	iResult = getaddrinfo(NULL, portStr, &hints, &result);
+	if ( iResult != 0 ) {
+		printf("getaddrinfo failed with error: %d\n", iResult);
+		WSACleanup();
+		return;
+	}
+
+	// Create a SOCKET for connecting to server
+	ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+	if (ListenSocket == INVALID_SOCKET) {
+		printf("socket failed with error: %ld\n", WSAGetLastError());
+		freeaddrinfo(result);
+		WSACleanup();
+		return;
+	}
+
+	// Setup the TCP listening socket
+	iResult = bind( ListenSocket, result->ai_addr, (int)result->ai_addrlen);
+	if (iResult == SOCKET_ERROR) {
+		printf("bind failed with error: %d\n", WSAGetLastError());
+		freeaddrinfo(result);
+		closesocket(ListenSocket);
+		WSACleanup();
+		return;
+	}
+
+	freeaddrinfo(result);
+
+	_beginthread(threadFunc, 0, NULL);
+
+#endif
 }
 
 ServerSocketInterface::~ServerSocketInterface() {
+#ifdef LINUX
 	if (this->serverThread != nullptr) {
 		this->serverThread->join();
 	}
+#endif
 }
 
 void ServerSocketInterface::listen() {
-
+#ifdef LINUX
 	//Listen
 	::listen(socket_desc, 3);
 
@@ -63,7 +191,10 @@ void ServerSocketInterface::listen() {
 	this->serverThread = new std::thread([=]() {
 		this->serverThreadFunction();
 	});
+#endif
 }
+
+#ifdef LINUX
 void ServerSocketInterface::serverThreadFunction() {
 	struct sockaddr_in client;
 	int c, read_size;
@@ -97,8 +228,18 @@ void ServerSocketInterface::serverThreadFunction() {
 		}
 	}
 }
+#endif
 
 bool ServerSocketInterface::writeBytes(const uint8_t* bytes, uint16_t length) {
+#ifdef LINUX
 	return write(client_sock, bytes, length) == length;
-}
+#else
+	return send( ClientSocket, (const char*) bytes, length, 0 ) == length;
 #endif
+}
+
+void ServerSocketInterface::receiveBytes(const uint8_t* bytes, uint16_t length) {
+	if (this->uplayer != nullptr) {
+		this->uplayer->receiveBytes(bytes, length);
+	}
+}
