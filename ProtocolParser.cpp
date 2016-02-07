@@ -376,7 +376,7 @@ ProtocolResult_t ProtocolParser::listProperty(const Node *node, const Property_t
 		if (prop->type == PropertyType_Binary) {
 			uint8_t *ptr = NULL;
 			uint16_t length = 0;
-			result = prop->binaryGet(node, (void**) &ptr, &length);
+			result = (node->*prop->binaryGet)((void**) &ptr, &length);
 			if (result == ProtocolResult_Ok) {
 				serialInterface->writeString(buffer);
 				while (length > 0) {
@@ -406,27 +406,27 @@ ProtocolResult_t ProtocolParser::getProperty(const Node *node, const Property_t 
 
     switch (prop->type) {
     case PropertyType_Bool:
-        result = prop->boolGet(node, (bool*)value);
+        result = (node->*prop->boolGet)((bool*)value);
         if (result == ProtocolResult_Ok) {
             value[0] = (*(bool*)value) ? '1' : '0';
             value[1] = '\0';
         }
         break;
     case PropertyType_Int32:
-        result = prop->intGet(node, (int32_t*)value);
+        result = (node->*prop->intGet)((int32_t*)value);
         if (result == ProtocolResult_Ok) {
             sprintf(value, "%ld", (long int) *(int32_t*)value);
         }
         break;
     case PropertyType_Uint32:
-        result = prop->uintGet(node, (uint32_t*)value);
+        result = (node->*prop->uintGet)((uint32_t*)value);
         if (result == ProtocolResult_Ok) {
             sprintf(value, "%lu", (long unsigned int) *(uint32_t*)value);
         }
         break;
     case PropertyType_Float32: {
     	float f;
-        result = prop->floatGet(node, &f);
+        result = (node->*prop->floatGet)(&f);
         if (result == ProtocolResult_Ok) {
         	/*
         	 * this routine prints the float number with 4 frac. digits precision
@@ -472,7 +472,7 @@ ProtocolResult_t ProtocolParser::getProperty(const Node *node, const Property_t 
         break;
     }
     case PropertyType_String:
-        result = prop->stringGet(node, value);
+    	result = (node->*prop->stringGet)(value);
         break;
     case PropertyType_Binary:
     	result = this->getBinaryProperty(node, prop, value);
@@ -488,18 +488,18 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
 
     switch (prop->type) {
     case PropertyType_Bool:
-        result = prop->boolSet(node, value[0] != '0');
+        result = (node->*prop->boolSet)(value[0] != '0');
         break;
     case PropertyType_Int32: {
         long int i;
         sscanf(value, "%ld", &i);
-        result = prop->intSet(node, i);
+        result = (node->*prop->intSet)(i);
         break;
     }
     case PropertyType_Uint32:
         unsigned long int j;
         sscanf(value, "%lu", &j);
-        result = prop->uintSet(node, j);
+        result = (node->*prop->uintSet)(j);
         break;
     case PropertyType_Float32: {
         int fint, ffrac;
@@ -525,14 +525,14 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
         if (isNegative) {
             f = 0.f - f;
         }
-        result = prop->floatSet(node, f);
+        result = (node->*prop->floatSet)(f);
         break;
     }
     case PropertyType_String:
-        result = prop->stringSet(node, value);
+        result = (node->*prop->stringSet)(value);
         break;
     case PropertyType_Method:
-        result = prop->methodInvoke(node, value);
+        result = (node->*prop->methodInvoke)(value);
         break;
     case PropertyType_Binary: {
     	size_t length = strlen(value);
@@ -543,7 +543,7 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
     	if (!this->binaryStringToArray(value, data)) {
 			return  ProtocolResult_InvalidValue;
     	}
-		result = prop->binarySet(node, data, length / 2);
+		result = (node->*prop->binarySet)(data, length / 2);
     }
     }
     return result;
@@ -552,7 +552,7 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
 ProtocolResult_t ProtocolParser::getBinaryProperty(const Node *node, const Property_t *prop, char* value) {
 	uint8_t *ptr = NULL;
 	uint16_t length = 0;
-	ProtocolResult_t result = prop->binaryGet(node, (void**) &ptr, &length);
+	ProtocolResult_t result = (node->*prop->binaryGet)((void**) &ptr, &length);
 	if (result == ProtocolResult_Ok) {
 		while (length > 0) {
 			sprintf(value, "%02X", *ptr);
