@@ -26,6 +26,7 @@ private:
 #ifdef LINUX
     struct sockaddr_in server;
     std::thread * serverThread;
+    void serverThreadFunction();
 #endif
     int socket_desc;
     int client_sock;

@@ -18,12 +18,13 @@
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-
+#endif
 
 #define DEFAULT_BUFLEN 2000
 
 static ServerSocketInterface* instance = NULL;
 
+#ifndef LINUX
 static SOCKET ListenSocket = INVALID_SOCKET;
 static SOCKET ClientSocket = INVALID_SOCKET;
 
@@ -198,8 +199,7 @@ void ServerSocketInterface::listen() {
 void ServerSocketInterface::serverThreadFunction() {
 	struct sockaddr_in client;
 	int c, read_size;
-	static const int buffer_size = 2000;
-	uint8_t client_message[buffer_size];
+	uint8_t client_message[DEFAULT_BUFLEN];
 
 	c = sizeof(struct sockaddr_in);
 
@@ -214,7 +214,7 @@ void ServerSocketInterface::serverThreadFunction() {
 		puts("Connection accepted");
 
 		//Receive a message from client
-		while ((read_size = recv(client_sock, client_message, buffer_size, 0)) > 0) {
+		while ((read_size = recv(client_sock, client_message, DEFAULT_BUFLEN, 0)) > 0) {
 			if (this->uplayer != nullptr) {
 				this->uplayer->receiveBytes(client_message, read_size);
 			}
