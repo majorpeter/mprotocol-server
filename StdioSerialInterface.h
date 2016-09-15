@@ -15,7 +15,7 @@ public:
     virtual ~StdioSerialInterface() {}
 
     virtual void listen();
-    virtual void writeString(const char* bytes);
+    virtual bool writeBytes(const uint8_t* bytes, uint16_t length);
 };
 
 #endif /* PROTOCOL_STDIOSERIALINTERFACE_H_ */

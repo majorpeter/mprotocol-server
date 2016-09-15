@@ -1,10 +1,9 @@
 #include "ProtocolParser.h"
-#include "Nodes/RootNode.h"
-#include "Log/Log.h"
+#include "mprotocol-nodes/RootNode.h"
+//TODO integrate log #include "Log/Log.h"
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
-#include <Scheduler/Scheduler.h>
 
 #define RX_BUFFER_SIZE 256
 #define MAX_SUBSCRIBED_NODES 15
@@ -29,7 +28,6 @@ ProtocolParser::ProtocolParser(AbstractSerialInterface* serialInterface): serial
 	}
 	instance = this;
 	serialInterface->setUpLayer(this);
-	Timeout::set(50,ProtocolParser::periodicHandle,TIMEOUT_MODE_NON_BLOCKING|TIMEOUT_MODE_AUTORESTART);
 }
 
 void ProtocolParser::periodicHandle() {
@@ -90,7 +88,7 @@ void ProtocolParser::handleSubscriptions() {
 			// is LSB a changed property
 			if (mask & 0x01) {
 				serialInterface->writeString("CHG ");
-				subscribedNodes[i]->printPathRecursively(serialInterface);
+				//TODO port this feature: subscribedNodes[i]->printPathRecursively(serialInterface);
 				serialInterface->writeBytes((uint8_t*) ".", 1);
 				serialInterface->writeString(subscribedNodes[i]->getProperties()[propIndex]->name);
 				serialInterface->writeBytes((uint8_t*) "=", 1);
@@ -159,10 +157,8 @@ void ProtocolParser::handleReceivedCommands() {
 }
 
 void ProtocolParser::handler() {
-	//this->handleSubscriptions();
+	this->handleSubscriptions();
 	this->handleReceivedCommands();
-
-	Log::getInstance()->handler(serialInterface);
 	serialInterface->handler();
 }
 

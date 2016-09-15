@@ -1,8 +1,8 @@
-#include <Protocol/StdioSerialInterface.h>
-#include <Protocol/ProtocolParser.h>
-#include <Log/Log.h>
+#include "StdioSerialInterface.h"
+#include "ProtocolParser.h"
 #include "AbstractUpLayer.h"
 #include <stdio.h>
+#include <string.h>
 
 StdioSerialInterface::StdioSerialInterface() {}
 
@@ -18,11 +18,11 @@ void StdioSerialInterface::listen() {
         uplayer->receiveBytes((uint8_t*) buffer, strlen(buffer));
         ProtocolParser::getExistingInstance()->handler();	// TODO remove this dirty hack!!
         ProtocolParser::getExistingInstance()->handleSubscriptions();	//TODO this too. :)
-        Log::getInstance()->handler(this);   //TODO pretty much the same deal
     }
 }
 
-void StdioSerialInterface::writeString(const char* bytes) {
-    fputs(bytes, stdout);
+bool StdioSerialInterface::writeBytes(const uint8_t* bytes, uint16_t length) {
+    size_t retVal = fwrite(bytes, 1, length, stdout);
     fflush(stdout);
+    return (retVal == length);
 }

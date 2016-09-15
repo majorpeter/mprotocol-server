@@ -3,7 +3,7 @@
 
 #include "AbstractSerialInterface.h"
 #include "AbstractUpLayer.h"
-#include "Nodes/Property.h"
+#include "mprotocol-nodes/Property.h"
 
 class Node;
 
