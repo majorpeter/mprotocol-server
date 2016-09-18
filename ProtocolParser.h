@@ -42,6 +42,8 @@ public:
     static const char* resultToStr(ProtocolResult_t result);
     ProtocolResult_t addNodeToSubscribed(Node *node);
     ProtocolResult_t removeNodeFromSubscribed(Node *node);
+private:
+    void printNodePathRecursively(const Node* node);
 };
 
 #endif /* PROTOCOLPARSER_H_ */

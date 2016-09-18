@@ -88,7 +88,7 @@ void ProtocolParser::handleSubscriptions() {
 			// is LSB a changed property
 			if (mask & 0x01) {
 				serialInterface->writeString("CHG ");
-				//TODO port this feature: subscribedNodes[i]->printPathRecursively(serialInterface);
+				this->printNodePathRecursively(subscribedNodes[i]);
 				serialInterface->writeBytes((uint8_t*) ".", 1);
 				serialInterface->writeString(subscribedNodes[i]->getProperties()[propIndex]->name);
 				serialInterface->writeBytes((uint8_t*) "=", 1);
@@ -649,4 +649,18 @@ bool ProtocolParser::binaryStringToArray(const char* from, uint8_t* to) {
 		to++;
 	}
 	return true;
+}
+
+void ProtocolParser::printNodePathRecursively(const Node* node) {
+	const Node* parent = node->getParent();
+	if (parent != NULL) {
+		this->printNodePathRecursively(parent);
+		if (parent != RootNode::getInstance()) {
+			this->serialInterface->writeBytes((uint8_t*) '/', 1);
+		}
+	}
+
+	if (node->getName() != NULL) {
+		this->serialInterface->writeString(node->getName());
+	}
 }
