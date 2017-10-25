@@ -12,11 +12,11 @@ void StdioSerialInterface::listen() {
         //TODO IO multiplexing
         fgets(buffer, sizeof buffer, stdin);
         if (feof(stdin)) {
-        	return;
+            return;
         }
 
         uplayer->receiveBytes((uint8_t*) buffer, strlen(buffer));
-        ProtocolParser::getExistingInstance()->handler();	// TODO remove this dirty hack!!
+        ProtocolParser::getExistingInstance()->handler();    // TODO remove this dirty hack!!
     }
 }
 

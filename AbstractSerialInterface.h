@@ -23,7 +23,7 @@ public:
     virtual void handler() {};
     virtual void listen() {};
     virtual bool isOpen() {
-    	return false;
+        return false;
     }
 
     // returns true on success
@@ -33,13 +33,13 @@ public:
 
     // alias for writeString
     AbstractSerialInterface& operator<<(const char* str) {
-    	writeString(str);
-    	return *this;
+        writeString(str);
+        return *this;
     }
     AbstractSerialInterface& operator<<(char c) {
-        	writeBytes((uint8_t*) &c, 1);
-        	return *this;
-        }
+        writeBytes((uint8_t*) &c, 1);
+        return *this;
+    }
 };
 
 #endif /* PROTOCOL_ABSTRACTSERIALINTERFACE_H_ */

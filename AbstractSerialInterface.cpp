@@ -17,6 +17,6 @@ void AbstractSerialInterface::setUpLayer(AbstractUpLayer *ul) {
 }
 
 bool AbstractSerialInterface::writeString(const char *str) {
-	size_t length = strlen(str);
-	return this->writeBytes((uint8_t*) str, length);
+    size_t length = strlen(str);
+    return this->writeBytes((uint8_t*) str, length);
 }

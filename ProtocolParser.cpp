@@ -11,29 +11,29 @@
 #ifndef SIMULATOR
 #define SUBSCRIPTION_HANDLE_PERIOD_MS 100
 #else
-#define SUBSCRIPTION_HANDLE_PERIOD_MS 1	// send update in each simulation step
+#define SUBSCRIPTION_HANDLE_PERIOD_MS 1    // send update in each simulation step
 #endif
 
 ProtocolParser* ProtocolParser::instance = NULL;
 
 ProtocolParser::ProtocolParser(AbstractSerialInterface* serialInterface): serialInterface(serialInterface) {
-	rxBuffer = new char[RX_BUFFER_SIZE];
-	rxPosition = 0;
+    rxBuffer = new char[RX_BUFFER_SIZE];
+    rxPosition = 0;
 
-	subscribedNodes = new Node*[MAX_SUBSCRIBED_NODES];
-	subscribedNodeCount = 0;
+    subscribedNodes = new Node*[MAX_SUBSCRIBED_NODES];
+    subscribedNodeCount = 0;
 
-	if (instance != NULL) {
-		exit(1);	// kill application if invoked twice
-	}
-	instance = this;
-	serialInterface->setUpLayer(this);
+    if (instance != NULL) {
+        exit(1);    // kill application if invoked twice
+    }
+    instance = this;
+    serialInterface->setUpLayer(this);
 }
 
 ProtocolParser::~ProtocolParser() {
-	delete[] rxBuffer;
-	delete[] subscribedNodes;
-	instance = NULL;
+    delete[] rxBuffer;
+    delete[] subscribedNodes;
+    instance = NULL;
 }
 
 /**
@@ -41,21 +41,21 @@ ProtocolParser::~ProtocolParser() {
  * @note returns NULL if it does not exist
  */
 ProtocolParser* ProtocolParser::getExistingInstance() {
-	return instance;
+    return instance;
 }
 
 void ProtocolParser::switchSerialInterface(AbstractSerialInterface* interface) {
-	if (this->serialInterface != NULL) {
-		this->serialInterface->setUpLayer(NULL);
-	}
+    if (this->serialInterface != NULL) {
+        this->serialInterface->setUpLayer(NULL);
+    }
 
-	rxPosition = 0;
-	this->serialInterface = interface;
-	interface->setUpLayer(this);
+    rxPosition = 0;
+    this->serialInterface = interface;
+    interface->setUpLayer(this);
 }
 
 AbstractSerialInterface* ProtocolParser::getInterface() {
-	return this->serialInterface;
+    return this->serialInterface;
 }
 
 void ProtocolParser::listen() {
@@ -64,18 +64,18 @@ void ProtocolParser::listen() {
 
 bool ProtocolParser::receiveBytes(const uint8_t* bytes, uint16_t len) {
     bool result = true;
-	if (rxPosition + len > RX_BUFFER_SIZE) {
-		result = false;
-		len = RX_BUFFER_SIZE - rxPosition;
-	}
+    if (rxPosition + len > RX_BUFFER_SIZE) {
+        result = false;
+        len = RX_BUFFER_SIZE - rxPosition;
+    }
 
-	if (len == 0) {
-	    return result;
-	}
+    if (len == 0) {
+        return result;
+    }
 
-	memcpy(rxBuffer + rxPosition, bytes, len);
-	rxPosition += len;
-	return result;
+    memcpy(rxBuffer + rxPosition, bytes, len);
+    rxPosition += len;
+    return result;
 }
 
 /**
@@ -83,30 +83,30 @@ bool ProtocolParser::receiveBytes(const uint8_t* bytes, uint16_t len) {
  * @note sends CHG messages about changes
  */
 void ProtocolParser::handleSubscriptions() {
-	for (uint16_t i = 0; i < subscribedNodeCount; i++) {
-		uint32_t mask = subscribedNodes[i]->getAndClearPropChangeMask();
-		uint8_t propIndex = 0;
+    for (uint16_t i = 0; i < subscribedNodeCount; i++) {
+        uint32_t mask = subscribedNodes[i]->getAndClearPropChangeMask();
+        uint8_t propIndex = 0;
 
-		while (mask != 0) {
-			// is LSB a changed property
-			if (mask & 0x01) {
-				serialInterface->writeString("CHG ");
-				this->printNodePathRecursively(subscribedNodes[i]);
-				serialInterface->writeBytes((uint8_t*) ".", 1);
-				serialInterface->writeString(subscribedNodes[i]->getProperties()[propIndex]->name);
-				serialInterface->writeBytes((uint8_t*) "=", 1);
-				char buffer[256];	//TODO buffer size? maybe a common buffer?
-				getProperty(subscribedNodes[i], subscribedNodes[i]->getProperties()[propIndex], buffer);	//TODO print instead
-				*serialInterface << buffer;
-				serialInterface->writeBytes((uint8_t*) "\n", 1);
-			}
+        while (mask != 0) {
+            // is LSB a changed property
+            if (mask & 0x01) {
+                serialInterface->writeString("CHG ");
+                this->printNodePathRecursively(subscribedNodes[i]);
+                serialInterface->writeBytes((uint8_t*) ".", 1);
+                serialInterface->writeString(subscribedNodes[i]->getProperties()[propIndex]->name);
+                serialInterface->writeBytes((uint8_t*) "=", 1);
+                char buffer[256];    //TODO buffer size? maybe a common buffer?
+                getProperty(subscribedNodes[i], subscribedNodes[i]->getProperties()[propIndex], buffer);    //TODO print instead
+                *serialInterface << buffer;
+                serialInterface->writeBytes((uint8_t*) "\n", 1);
+            }
 
-			mask = mask >> 1;
-			propIndex++;
-		}
-		// write all CHG's from current node
-		serialInterface->handler();
-	}
+            mask = mask >> 1;
+            propIndex++;
+        }
+        // write all CHG's from current node
+        serialInterface->handler();
+    }
 }
 
 /**
@@ -114,7 +114,7 @@ void ProtocolParser::handleSubscriptions() {
  * @note also moves an incomplete command from the buffer to the start position of buffer
  */
 void ProtocolParser::handleReceivedCommands() {
-	int rxLineStart = 0;
+    int rxLineStart = 0;
     while (1) {
         // find \n or \r at end of line
         char *nl = (char*) memchr(rxBuffer + rxLineStart, '\n', rxPosition - rxLineStart);
@@ -147,28 +147,28 @@ void ProtocolParser::handleReceivedCommands() {
         rxLineStart = (nl - rxBuffer) + 1;
     }
 
-	// move last incomplete command to buffer start (if not already the first bytes)
-	//TODO lock buffer for this?
-	if ((rxLineStart > 0) && (rxPosition != 0)) {
-		if (rxPosition > rxLineStart) {
-			rxPosition = rxPosition - rxLineStart;
-			memcpy(rxBuffer, &rxBuffer[rxLineStart], rxPosition);
-		} else {
-			rxPosition = 0; // all lines parsed, buffer is empty
-		}
-	}
+    // move last incomplete command to buffer start (if not already the first bytes)
+    //TODO lock buffer for this?
+    if ((rxLineStart > 0) && (rxPosition != 0)) {
+        if (rxPosition > rxLineStart) {
+            rxPosition = rxPosition - rxLineStart;
+            memcpy(rxBuffer, &rxBuffer[rxLineStart], rxPosition);
+        } else {
+            rxPosition = 0; // all lines parsed, buffer is empty
+        }
+    }
 
-	// if the RX buffer is full, and it could not be processed in this iteration, it won't be processed in the next either...
-	if (rxPosition == RX_BUFFER_SIZE) {
-	    rxPosition = 0;
-	    reportResult(ProtocolResult_SyntaxError);
-	}
+    // if the RX buffer is full, and it could not be processed in this iteration, it won't be processed in the next either...
+    if (rxPosition == RX_BUFFER_SIZE) {
+        rxPosition = 0;
+        reportResult(ProtocolResult_SyntaxError);
+    }
 }
 
 void ProtocolParser::handler() {
-	this->handleSubscriptions();
-	this->handleReceivedCommands();
-	serialInterface->handler();
+    this->handleSubscriptions();
+    this->handleReceivedCommands();
+    serialInterface->handler();
 }
 
 ProtocolParser::ProtocolFunction ProtocolParser::decodeFunction(const char* str, uint16_t length) {
@@ -263,20 +263,20 @@ ProtocolResult_t ProtocolParser::parseString(char *s, uint16_t length) {
             listNode(node);
             return ProtocolResult_Ok;
         case ProtocolFunction::OPEN:
-        	result = addNodeToSubscribed(node);
+            result = addNodeToSubscribed(node);
             if (result == ProtocolResult_Ok) {
                 this->reportResult(ProtocolResult_Ok);
             }
             return result;
         case ProtocolFunction::CLOSE:
-        	result = removeNodeFromSubscribed(node);
+            result = removeNodeFromSubscribed(node);
             if (result == ProtocolResult_Ok) {
                 this->reportResult(ProtocolResult_Ok);
             }
             return result;
         case ProtocolFunction::MAN:
-        	this->writeManual(node, NULL);
-        	return ProtocolResult_Ok;
+            this->writeManual(node, NULL);
+            return ProtocolResult_Ok;
         default:
             return ProtocolResult_InvalidFunc;
         }
@@ -317,7 +317,7 @@ ProtocolResult_t ProtocolParser::parseString(char *s, uint16_t length) {
         }
         result = setProperty(node, prop, s);
         if (result == ProtocolResult_Ok) {
-        	this->reportResult(ProtocolResult_Ok);
+            this->reportResult(ProtocolResult_Ok);
         }
         return result;
     case ProtocolFunction::CALL:
@@ -326,12 +326,12 @@ ProtocolResult_t ProtocolParser::parseString(char *s, uint16_t length) {
         }
         result = setProperty(node, prop, s);
         if (result == ProtocolResult_Ok) {
-        	this->reportResult(ProtocolResult_Ok);
+            this->reportResult(ProtocolResult_Ok);
         }
         return result;
     case ProtocolFunction::MAN:
-    	this->writeManual(node, prop);
-    	return ProtocolResult_Ok;
+        this->writeManual(node, prop);
+        return ProtocolResult_Ok;
     }
 
 
@@ -351,11 +351,11 @@ void ProtocolParser::writeManual(const Node *node, const Property_t *property) {
     serialInterface->writeBytes((uint8_t*) "MAN ", 4);
     //TODO node name maybe?
     if (property != NULL) {
-    	// property manual string
-    	serialInterface->writeString(property->description);
+        // property manual string
+        serialInterface->writeString(property->description);
     } else {
-    	// node description
-    	serialInterface->writeString(node->getDescription());
+        // node description
+        serialInterface->writeString(node->getDescription());
     }
     serialInterface->writeBytes((uint8_t*) "\n", 1);
 }
@@ -379,50 +379,50 @@ void ProtocolParser::listNode(Node *node) {
 }
 
 ProtocolResult_t ProtocolParser::listProperty(const Node *node, const Property_t *prop) {
-	ProtocolResult_t result = ProtocolResult_InternalError;
-	char buffer[256];
-	char *s = buffer;
-	if (prop->accessLevel == PropAccessLevel_ReadWrite) {
-		strcpy(s, "PW_");
-		s+=3;
-	} else {
-		strcpy(s, "P_");
-		s+=2;
-	}
-	strcpy(s, Property_TypeToStr(prop->type));
-	strcat(s, " ");
-	strcat(s, prop->name);
-	s += strlen(s);
-	if (prop->accessLevel != PropAccessLevel_Invokable) {
-		*s = '=';
-		s++;
-		*s = '\0';	// just to make sure
+    ProtocolResult_t result = ProtocolResult_InternalError;
+    char buffer[256];
+    char *s = buffer;
+    if (prop->accessLevel == PropAccessLevel_ReadWrite) {
+        strcpy(s, "PW_");
+        s+=3;
+    } else {
+        strcpy(s, "P_");
+        s+=2;
+    }
+    strcpy(s, Property_TypeToStr(prop->type));
+    strcat(s, " ");
+    strcat(s, prop->name);
+    s += strlen(s);
+    if (prop->accessLevel != PropAccessLevel_Invokable) {
+        *s = '=';
+        s++;
+        *s = '\0';    // just to make sure
 
-		if (prop->type == PropertyType_Binary) {
-			uint8_t *ptr = NULL;
-			uint16_t length = 0;
-			result = (node->*prop->binaryGet)((void**) &ptr, &length);
-			if (result == ProtocolResult_Ok) {
-				serialInterface->writeString(buffer);
-				while (length > 0) {
-					char buf[3];
-					sprintf(buf, "%02X", *ptr);
-					serialInterface->writeBytes((uint8_t*) buf, 2);
-					ptr++;
-					length--;
-				}
-				serialInterface->writeBytes((uint8_t*) "\n", 1);
-			}
-			return result;
-		}
-		result = getProperty(node, prop, s);
-		if (result != ProtocolResult_Ok) {
-			serialInterface->writeString(resultToStr(result));
-		}
-	}
-	strcat(s, "\n");
-	serialInterface->writeString(buffer);
-	return result;
+        if (prop->type == PropertyType_Binary) {
+            uint8_t *ptr = NULL;
+            uint16_t length = 0;
+            result = (node->*prop->binaryGet)((void**) &ptr, &length);
+            if (result == ProtocolResult_Ok) {
+                serialInterface->writeString(buffer);
+                while (length > 0) {
+                    char buf[3];
+                    sprintf(buf, "%02X", *ptr);
+                    serialInterface->writeBytes((uint8_t*) buf, 2);
+                    ptr++;
+                    length--;
+                }
+                serialInterface->writeBytes((uint8_t*) "\n", 1);
+            }
+            return result;
+        }
+        result = getProperty(node, prop, s);
+        if (result != ProtocolResult_Ok) {
+            serialInterface->writeString(resultToStr(result));
+        }
+    }
+    strcat(s, "\n");
+    serialInterface->writeString(buffer);
+    return result;
 }
 
 ProtocolResult_t ProtocolParser::getProperty(const Node *node, const Property_t *prop, char* value) {
@@ -450,46 +450,46 @@ ProtocolResult_t ProtocolParser::getProperty(const Node *node, const Property_t 
         }
         break;
     case PropertyType_Float32: {
-    	float f;
+        float f;
         result = (node->*prop->floatGet)(&f);
         if (result == ProtocolResult_Ok) {
-        	/*
-        	 * this routine prints the float number with 4 frac. digits precision
-        	 * the printf("%f") did not work with this clib.
-        	 */
+            /*
+             * this routine prints the float number with 4 frac. digits precision
+             * the printf("%f") did not work with this clib.
+             */
 
-        	// print '-' if negative
-        	if (f < 0.f) {
-        		*value = '-';
-        		value++;
-        		f = -f;
-        	}
+            // print '-' if negative
+            if (f < 0.f) {
+                *value = '-';
+                value++;
+                f = -f;
+            }
 
-        	// print integer part and substract it
-        	value += sprintf(value, "%0d", (int) f);
+            // print integer part and substract it
+            value += sprintf(value, "%0d", (int) f);
             f -= (float) (int) f;
 
             // print decimal point if the fractional part is big enough
             if (f > 0.0001f) {
-            	*value = '.';
-            	value++;
+                *value = '.';
+                value++;
             }
 
             // print and substract the first 4 fractional digits
             uint8_t fracDigits = 0;
             while (f > 0.0001f) {
-            	// get the next digit left from the decimal point
-            	f *= 10;
-            	// this is a lot faster than sprintf for 1 digit
-            	*value = (char) ('0' + (int) f);
-            	// clear integer part
-            	f -= (float) (int) f;
+                // get the next digit left from the decimal point
+                f *= 10;
+                // this is a lot faster than sprintf for 1 digit
+                *value = (char) ('0' + (int) f);
+                // clear integer part
+                f -= (float) (int) f;
 
-            	value++;
-            	fracDigits++;
-            	if (fracDigits == 4) {
-            		break;
-            	}
+                value++;
+                fracDigits++;
+                if (fracDigits == 4) {
+                    break;
+                }
             }
             // always close the string
             *value = '\0';
@@ -497,11 +497,11 @@ ProtocolResult_t ProtocolParser::getProperty(const Node *node, const Property_t 
         break;
     }
     case PropertyType_String:
-    	result = (node->*prop->stringGet)(value);
+        result = (node->*prop->stringGet)(value);
         break;
     case PropertyType_Binary:
-    	result = this->getBinaryProperty(node, prop, value);
-    	break;
+        result = this->getBinaryProperty(node, prop, value);
+        break;
     default: value[0] = '\0';
     }
     return result;
@@ -536,17 +536,17 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
         }
         int res = sscanf(value, "%d.%d", &fint, &ffrac);
         if (res == 2) {
-        	int fracdivision = 1;
-        	const char *p = strchr(value, '.') + 1;	// cannot be NULL, because sscanf found it
-        	while (*p != '\0') {
-        		fracdivision *= 10;
-        		p++;
-        	}
-        	f = (float) fint + (float) ffrac / (float) fracdivision;
+            int fracdivision = 1;
+            const char *p = strchr(value, '.') + 1;    // cannot be NULL, because sscanf found it
+            while (*p != '\0') {
+                fracdivision *= 10;
+                p++;
+            }
+            f = (float) fint + (float) ffrac / (float) fracdivision;
         } else if (res == 1) {
-        	f = (float) fint;
+            f = (float) fint;
         } else
-        	break;
+            break;
         if (isNegative) {
             f = 0.f - f;
         }
@@ -560,33 +560,33 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
         result = (node->*prop->methodInvoke)(value);
         break;
     case PropertyType_Binary: {
-    	size_t length = strlen(value);
-    	if (length & 0x01) {
-    		return ProtocolResult_InvalidValue;
-    	}
-    	uint8_t data[length / 2];
-    	if (!this->binaryStringToArray(value, data)) {
-			return  ProtocolResult_InvalidValue;
-    	}
-		result = (node->*prop->binarySet)(data, length / 2);
+        size_t length = strlen(value);
+        if (length & 0x01) {
+            return ProtocolResult_InvalidValue;
+        }
+        uint8_t data[length / 2];
+        if (!this->binaryStringToArray(value, data)) {
+            return  ProtocolResult_InvalidValue;
+        }
+        result = (node->*prop->binarySet)(data, length / 2);
     }
     }
     return result;
 }
 
 ProtocolResult_t ProtocolParser::getBinaryProperty(const Node *node, const Property_t *prop, char* value) {
-	uint8_t *ptr = NULL;
-	uint16_t length = 0;
-	ProtocolResult_t result = (node->*prop->binaryGet)((void**) &ptr, &length);
-	if (result == ProtocolResult_Ok) {
-		while (length > 0) {
-			sprintf(value, "%02X", *ptr);
-			value += 2;
-			ptr++;
-			length--;
-		}
-	}
-	return result;
+    uint8_t *ptr = NULL;
+    uint16_t length = 0;
+    ProtocolResult_t result = (node->*prop->binaryGet)((void**) &ptr, &length);
+    if (result == ProtocolResult_Ok) {
+        while (length > 0) {
+            sprintf(value, "%02X", *ptr);
+            value += 2;
+            ptr++;
+            length--;
+        }
+    }
+    return result;
 }
 
 const char* ProtocolParser::resultToStr(ProtocolResult_t result) {
@@ -609,20 +609,20 @@ const char* ProtocolParser::resultToStr(ProtocolResult_t result) {
  * @return ProtocolResult_Ok, if added to array, ProtocolResult_Failed if array already exists or array full
  */
 ProtocolResult_t ProtocolParser::addNodeToSubscribed(Node *node) {
-	if (subscribedNodeCount == MAX_SUBSCRIBED_NODES) {
-		return ProtocolResult_Failed;
-	}
+    if (subscribedNodeCount == MAX_SUBSCRIBED_NODES) {
+        return ProtocolResult_Failed;
+    }
 
-	for (uint16_t i = 0; i < subscribedNodeCount; i++) {
-		if (subscribedNodes[i] == node ) {
-			return ProtocolResult_Failed;
-		}
-	}
+    for (uint16_t i = 0; i < subscribedNodeCount; i++) {
+        if (subscribedNodes[i] == node ) {
+            return ProtocolResult_Failed;
+        }
+    }
 
-	subscribedNodes[subscribedNodeCount] = node;
-	subscribedNodeCount++;
+    subscribedNodes[subscribedNodeCount] = node;
+    subscribedNodeCount++;
 
-	return ProtocolResult_Ok;
+    return ProtocolResult_Ok;
 }
 
 /**
@@ -630,36 +630,36 @@ ProtocolResult_t ProtocolParser::addNodeToSubscribed(Node *node) {
  * @return ProtocolResult_Ok, if removed from array, ProtocolResult_Failed if not found in array
  */
 ProtocolResult_t ProtocolParser::removeNodeFromSubscribed(Node *node) {
-	ProtocolResult_t result = ProtocolResult_Failed;
-	uint16_t i;
-	for (i = 0; i < subscribedNodeCount; i++) {
-		if (subscribedNodes[i] == node ) {
-			result = ProtocolResult_Ok;
-			break;
-		}
-	}
+    ProtocolResult_t result = ProtocolResult_Failed;
+    uint16_t i;
+    for (i = 0; i < subscribedNodeCount; i++) {
+        if (subscribedNodes[i] == node ) {
+            result = ProtocolResult_Ok;
+            break;
+        }
+    }
 
-	if (result == ProtocolResult_Ok) {
-		subscribedNodeCount--;
-		for (; i < subscribedNodeCount; i++) {
-			subscribedNodes[i] = subscribedNodes[i+1];
-		}
-	}
-	return result;
+    if (result == ProtocolResult_Ok) {
+        subscribedNodeCount--;
+        for (; i < subscribedNodeCount; i++) {
+            subscribedNodes[i] = subscribedNodes[i+1];
+        }
+    }
+    return result;
 }
 
 uint8_t ProtocolParser::charToByte(char c) {
-	if (c < '0') return 0xff;
-	if (c <= '9') {
-		return c - '0';
-	}
-	if (c < 'A') {
-		return 0xff;
-	}
-	if (c <= 'F') {
-		return c - 'A' + 0x0a;
-	}
-	return 0xff;
+    if (c < '0') return 0xff;
+    if (c <= '9') {
+        return c - '0';
+    }
+    if (c < 'A') {
+        return 0xff;
+    }
+    if (c <= 'F') {
+        return c - 'A' + 0x0a;
+    }
+    return 0xff;
 }
 
 /**
@@ -667,29 +667,29 @@ uint8_t ProtocolParser::charToByte(char c) {
  * @return true if the string was valid
  */
 bool ProtocolParser::binaryStringToArray(const char* from, uint8_t* to) {
-	while (from[0] != '\0') {
-		uint8_t val0 = charToByte(from[0]);
-		uint8_t val1 = charToByte(from[1]);
-		if ((val0 == 0xff) || (val1 == 0xff)) {
-			return false;
-		}
-		*to = (val0 << 4) | val1;
-		from += 2;
-		to++;
-	}
-	return true;
+    while (from[0] != '\0') {
+        uint8_t val0 = charToByte(from[0]);
+        uint8_t val1 = charToByte(from[1]);
+        if ((val0 == 0xff) || (val1 == 0xff)) {
+            return false;
+        }
+        *to = (val0 << 4) | val1;
+        from += 2;
+        to++;
+    }
+    return true;
 }
 
 void ProtocolParser::printNodePathRecursively(const Node* node) {
-	const Node* parent = node->getParent();
-	if (parent != NULL) {
-		this->printNodePathRecursively(parent);
-		if (parent != RootNode::getInstance()) {
-			this->serialInterface->writeBytes((uint8_t*) '/', 1);
-		}
-	}
+    const Node* parent = node->getParent();
+    if (parent != NULL) {
+        this->printNodePathRecursively(parent);
+        if (parent != RootNode::getInstance()) {
+            this->serialInterface->writeBytes((uint8_t*) '/', 1);
+        }
+    }
 
-	if (node->getName() != NULL) {
-		this->serialInterface->writeString(node->getName());
-	}
+    if (node->getName() != NULL) {
+        this->serialInterface->writeString(node->getName());
+    }
 }

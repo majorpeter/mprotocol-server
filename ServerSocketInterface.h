@@ -17,8 +17,8 @@
 
 class ServerSocketInterface: public AbstractSerialInterface {
 public:
-	ServerSocketInterface(uint16_t port);
-	virtual ~ServerSocketInterface();
+    ServerSocketInterface(uint16_t port);
+    virtual ~ServerSocketInterface();
     virtual void listen();
     virtual bool writeBytes(const uint8_t* bytes, uint16_t length);
     void receiveBytes(const uint8_t* bytes, uint16_t length);
