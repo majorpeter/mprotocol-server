@@ -63,12 +63,19 @@ void ProtocolParser::listen() {
 }
 
 bool ProtocolParser::receiveBytes(const uint8_t* bytes, uint16_t len) {
+    bool result = true;
 	if (rxPosition + len > RX_BUFFER_SIZE) {
-		return false;
+		result = false;
+		len = RX_BUFFER_SIZE - rxPosition;
 	}
+
+	if (len == 0) {
+	    return result;
+	}
+
 	memcpy(rxBuffer + rxPosition, bytes, len);
 	rxPosition += len;
-	return true;
+	return result;
 }
 
 /**
@@ -108,37 +115,37 @@ void ProtocolParser::handleSubscriptions() {
  */
 void ProtocolParser::handleReceivedCommands() {
 	int rxLineStart = 0;
-	while (1) {
-		// find \n or \r at end of line
-		char *nl = (char*) memchr(rxBuffer + rxLineStart, '\n', rxPosition - rxLineStart);
-		char *cr = (char*) memchr(rxBuffer + rxLineStart, '\r', rxPosition - rxLineStart);
-		if (nl == NULL) {
-			nl = cr;
-			if (nl == NULL) {
-				break;
-			}
-		} else if (cr != NULL) {
-			*cr = '\0';
-		}
+    while (1) {
+        // find \n or \r at end of line
+        char *nl = (char*) memchr(rxBuffer + rxLineStart, '\n', rxPosition - rxLineStart);
+        char *cr = (char*) memchr(rxBuffer + rxLineStart, '\r', rxPosition - rxLineStart);
+        if (nl == NULL) {
+            nl = cr;
+            if (nl == NULL) {
+                break;
+            }
+        } else if (cr != NULL) {
+            *cr = '\0';
+        }
 
-		// skip empty lines
-		if (&rxBuffer[rxLineStart] == nl) {
-			rxLineStart++;
-			continue;
-		}
+        // skip empty lines
+        if (&rxBuffer[rxLineStart] == nl) {
+            rxLineStart++;
+            continue;
+        }
 
-		// change new line char to null (terminate string)
-		*nl = '\0';
+        // change new line char to null (terminate string)
+        *nl = '\0';
 
-		// parse current line
-		ProtocolResult_t result = parseString(&rxBuffer[rxLineStart]);
-		if (result != ProtocolResult_Ok) {
-			reportResult(result);
-		}
+        // parse current line
+        ProtocolResult_t result = parseString(&rxBuffer[rxLineStart], nl - &rxBuffer[rxLineStart]);
+        if (result != ProtocolResult_Ok) {
+            reportResult(result);
+        }
 
-		// update next line start address, the next byte after '\n'
-		rxLineStart = (nl - rxBuffer) + 1;
-	}
+        // update next line start address, the next byte after '\n'
+        rxLineStart = (nl - rxBuffer) + 1;
+    }
 
 	// move last incomplete command to buffer start (if not already the first bytes)
 	//TODO lock buffer for this?
@@ -150,6 +157,12 @@ void ProtocolParser::handleReceivedCommands() {
 			rxPosition = 0; // all lines parsed, buffer is empty
 		}
 	}
+
+	// if the RX buffer is full, and it could not be processed in this iteration, it won't be processed in the next either...
+	if (rxPosition == RX_BUFFER_SIZE) {
+	    rxPosition = 0;
+	    reportResult(ProtocolResult_SyntaxError);
+	}
 }
 
 void ProtocolParser::handler() {
@@ -158,40 +171,60 @@ void ProtocolParser::handler() {
 	serialInterface->handler();
 }
 
-ProtocolResult_t ProtocolParser::parseString(char *s) {
+ProtocolParser::ProtocolFunction ProtocolParser::decodeFunction(const char* str, uint16_t length) {
+    if (length < 4) {
+        return ProtocolFunction::Unknown;
+    }
+
+    if (strncmp("GET ", str, 4) == 0) {
+        return ProtocolFunction::GET;
+    } else if (strncmp("SET ", str, 4) == 0) {
+        return ProtocolFunction::SET;
+    } else if (strncmp("MAN ", str, 4) == 0) {
+        return ProtocolFunction::MAN;
+    }
+
+    if (length < 5) {
+        return ProtocolFunction::Unknown;
+    }
+
+    else if (strncmp("CALL ", str, 5) == 0) {
+        return ProtocolFunction::CALL;
+    } else if (strncmp("OPEN ", str, 5) == 0) {
+        return ProtocolFunction::OPEN;
+    }
+
+    if (length < 6) {
+        return ProtocolFunction::Unknown;
+    }
+
+    if (strncmp("CLOSE ", str, 6) == 0) {
+        return ProtocolFunction::CLOSE;
+    }
+
+    /// no matter what bytes come next, this line is certainly invalid
+    return ProtocolFunction::Invalid;
+}
+
+ProtocolResult_t ProtocolParser::parseString(char *s, uint16_t length) {
     ProtocolResult_t result = ProtocolResult_InternalError;
 
-    // decode protocol function
-    enum {UNKNOWN, GET, SET, CALL, OPEN, CLOSE, MAN} decodedFunc = UNKNOWN;
-
     char *p = strchr(s, '\n');
-    if (p != NULL) {
-    	*p = '\0';
+    if (p == NULL) {
+        if (length == 0) {
+            return result;
+        }
+    } else {
+        length = p - s;
+        *p = '\0';
     }
 
-    if (strncmp("GET ", s, 4) == 0) {
-        decodedFunc = GET;
-        s += 4;
-    } else if (strncmp("SET ", s, 4) == 0) {
-        decodedFunc = SET;
-        s += 4;
-    } else if (strncmp("CALL ", s, 5) == 0) {
-        decodedFunc = CALL;
-        s += 5;
-    } else if (strncmp("OPEN ", s, 5) == 0) {
-        decodedFunc = OPEN;
-        s += 5;
-    } else if (strncmp("CLOSE ", s, 6) == 0) {
-        decodedFunc = CLOSE;
-        s += 6;
-	} else if (strncmp("MAN ", s, 4) == 0) {
-		decodedFunc = MAN;
-		s += 4;
-	}
-
-    if (decodedFunc == UNKNOWN) {
+    ProtocolFunction decodedFunc = decodeFunction(s, length);
+    if (decodedFunc == ProtocolFunction::Invalid || decodedFunc == ProtocolFunction::Unknown) {
         return ProtocolResult_UnknownFunc;
     }
+    // jump after function (must be valid, since decodeFunction() was successful)
+    s = strchr(s, ' ') + 1;
 
     // decode target node
     Node* node = NULL;
@@ -226,22 +259,22 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
     // Node found by name, end of command
     if (s[0] == '\0') {
         switch (decodedFunc) {
-        case GET:
+        case ProtocolFunction::GET:
             listNode(node);
             return ProtocolResult_Ok;
-        case OPEN:
+        case ProtocolFunction::OPEN:
         	result = addNodeToSubscribed(node);
             if (result == ProtocolResult_Ok) {
                 this->reportResult(ProtocolResult_Ok);
             }
             return result;
-        case CLOSE:
+        case ProtocolFunction::CLOSE:
         	result = removeNodeFromSubscribed(node);
             if (result == ProtocolResult_Ok) {
                 this->reportResult(ProtocolResult_Ok);
             }
             return result;
-        case MAN:
+        case ProtocolFunction::MAN:
         	this->writeManual(node, NULL);
         	return ProtocolResult_Ok;
         default:
@@ -273,12 +306,12 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
 
     switch (decodedFunc) {
     default:
-    case GET:
+    case ProtocolFunction::GET:
         if (prop->type == PropertyType_Method) {
             return ProtocolResult_InvalidFunc;
         }
         return this->listProperty(node, prop);
-    case SET:
+    case ProtocolFunction::SET:
         if (prop->accessLevel != PropAccessLevel_ReadWrite) {
             return ProtocolResult_InvalidFunc;
         }
@@ -287,7 +320,7 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
         	this->reportResult(ProtocolResult_Ok);
         }
         return result;
-    case CALL:
+    case ProtocolFunction::CALL:
         if (prop->type != PropertyType_Method) {
             return ProtocolResult_InvalidFunc;
         }
@@ -296,7 +329,7 @@ ProtocolResult_t ProtocolParser::parseString(char *s) {
         	this->reportResult(ProtocolResult_Ok);
         }
         return result;
-    case MAN:
+    case ProtocolFunction::MAN:
     	this->writeManual(node, prop);
     	return ProtocolResult_Ok;
     }
