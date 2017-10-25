@@ -30,10 +30,6 @@ ProtocolParser::ProtocolParser(AbstractSerialInterface* serialInterface): serial
 	serialInterface->setUpLayer(this);
 }
 
-void ProtocolParser::periodicHandle() {
-	ProtocolParser::getExistingInstance()->handleSubscriptions();
-}
-
 ProtocolParser::~ProtocolParser() {
 	delete[] rxBuffer;
 	delete[] subscribedNodes;

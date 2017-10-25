@@ -8,7 +8,25 @@
 class Node;
 
 class ProtocolParser: public AbstractUpLayer {
-	static ProtocolParser* instance;
+public:
+    ProtocolParser(AbstractSerialInterface* serialInterface);
+    virtual ~ProtocolParser();
+    void handleSubscriptions();
+    static ProtocolParser* getExistingInstance();
+
+    void switchSerialInterface(AbstractSerialInterface* interface);
+    AbstractSerialInterface* getInterface();
+    void listen();
+    virtual bool receiveBytes(const uint8_t* bytes, uint16_t len);
+    void handler();
+    ProtocolResult_t parseString(char* s);
+    void reportResult(ProtocolResult_t errorCode);
+    void writeManual(const Node *node, const Property_t *property);
+    static const char* resultToStr(ProtocolResult_t result);
+    ProtocolResult_t addNodeToSubscribed(Node *node);
+    ProtocolResult_t removeNodeFromSubscribed(Node *node);
+private:
+    static ProtocolParser* instance;
     AbstractSerialInterface* serialInterface;
     char *rxBuffer;
     int rxPosition;
@@ -24,25 +42,6 @@ class ProtocolParser: public AbstractUpLayer {
     bool binaryStringToArray(const char* from, uint8_t* to);
 
     void handleReceivedCommands();
-public:
-    ProtocolParser(AbstractSerialInterface* serialInterface);
-    virtual ~ProtocolParser();
-    void handleSubscriptions();
-    static ProtocolParser* getExistingInstance();
-
-    void switchSerialInterface(AbstractSerialInterface* interface);
-    static void periodicHandle();
-    AbstractSerialInterface* getInterface();
-    void listen();
-    virtual bool receiveBytes(const uint8_t* bytes, uint16_t len);
-    void handler();
-    ProtocolResult_t parseString(char* s);
-    void reportResult(ProtocolResult_t errorCode);
-    void writeManual(const Node *node, const Property_t *property);
-    static const char* resultToStr(ProtocolResult_t result);
-    ProtocolResult_t addNodeToSubscribed(Node *node);
-    ProtocolResult_t removeNodeFromSubscribed(Node *node);
-private:
     void printNodePathRecursively(const Node* node);
 };
 
