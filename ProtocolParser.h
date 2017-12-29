@@ -29,6 +29,18 @@ public:
 private:
     enum class ProtocolFunction {Unknown, Invalid, GET, SET, CALL, OPEN, CLOSE, MAN};
 
+    class BinaryPacketInterface: public AbstractPacketInterface {
+    public:
+        BinaryPacketInterface(char* dest, uint16_t maxLength);
+        bool startTransaction();
+        bool transmitData(const uint8_t *data, uint16_t length);
+        bool commitTransaction();
+        void cancelTransaction();
+    private:
+        char* dest;
+        uint16_t bytesLeft;
+    };
+
     static ProtocolParser* instance;
     AbstractSerialInterface* serialInterface;
     char *rxBuffer;

@@ -305,7 +305,6 @@ ProtocolResult_t ProtocolParser::parseString(char *s, uint16_t length) {
     }
 
     switch (decodedFunc) {
-    default:
     case ProtocolFunction::GET:
         if (prop->type == PropertyType_Method) {
             return ProtocolResult_InvalidFunc;
@@ -332,10 +331,12 @@ ProtocolResult_t ProtocolParser::parseString(char *s, uint16_t length) {
     case ProtocolFunction::MAN:
         this->writeManual(node, prop);
         return ProtocolResult_Ok;
+    default:
+        break;
     }
 
 
-    //return ProtocolResult_UnknownFunc;
+    return ProtocolResult_UnknownFunc;
 }
 
 void ProtocolParser::reportResult(ProtocolResult_t errorCode) {
@@ -502,7 +503,14 @@ ProtocolResult_t ProtocolParser::getProperty(const Node *node, const Property_t 
     case PropertyType_Binary:
         result = this->getBinaryProperty(node, prop, value);
         break;
-    default: value[0] = '\0';
+    case PropertyType_BinarySegmented: {
+        BinaryPacketInterface binaryPacketInterface(value, 64);
+        result = (node->*prop->binarySegmentedGet)(&binaryPacketInterface);
+        break;
+    }
+    default:
+        value[0] = '\0';
+        break;
     }
     return result;
 }
@@ -569,6 +577,32 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
             return  ProtocolResult_InvalidValue;
         }
         result = (node->*prop->binarySet)(data, length / 2);
+        break;
+    }
+    case PropertyType_BinarySegmented: {
+        size_t length = strlen(value);
+        if (length & 0x01) {
+            return ProtocolResult_InvalidValue;
+        }
+        uint8_t data[length / 2];
+        if (!this->binaryStringToArray(value, data)) {
+            return  ProtocolResult_InvalidValue;
+        }
+
+        AbstractPacketInterface* packetInterface = (AbstractPacketInterface*) ((uint8_t*) node + (uint32_t) prop->binarySegmentedSet);
+        if (!packetInterface->startTransaction()) {
+            return ProtocolResult_InternalError;
+        }
+        if (!packetInterface->transmitData(data, length / 2)) {
+            packetInterface->cancelTransaction();
+            return ProtocolResult_InvalidValue;
+        }
+        if (!packetInterface->commitTransaction()) {
+            packetInterface->cancelTransaction();
+            return ProtocolResult_InternalError;
+        }
+        result = ProtocolResult_Ok;
+        break;
     }
     }
     return result;
@@ -693,3 +727,33 @@ void ProtocolParser::printNodePathRecursively(const Node* node) {
         this->serialInterface->writeString(node->getName());
     }
 }
+
+ProtocolParser::BinaryPacketInterface::BinaryPacketInterface(char* dest, uint16_t maxLength): dest(dest), bytesLeft(maxLength) {
+}
+
+bool ProtocolParser::BinaryPacketInterface::startTransaction() {
+    return (bytesLeft > 0);
+}
+
+bool ProtocolParser::BinaryPacketInterface::transmitData(const uint8_t *data, uint16_t length) {
+    if (length > bytesLeft / 2) {
+        return false;
+    }
+
+    while (length > 0) {
+        int len = sprintf(dest, "%02X", *data); //TODO optimize
+        dest += len;
+        bytesLeft -= len;
+
+        data++;
+        length--;
+    }
+    dest[0] = '\0';
+    return true;
+}
+
+bool ProtocolParser::BinaryPacketInterface::commitTransaction() {
+    return true;
+}
+
+void ProtocolParser::BinaryPacketInterface::cancelTransaction() {}
