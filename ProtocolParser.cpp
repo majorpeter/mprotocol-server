@@ -381,7 +381,11 @@ void ProtocolParser::listNode(Node *node) {
     serialInterface->writeString("}\n");
 }
 
-void ProtocolParser::printPropertyListingPreamble(const Node* /*TODO node AND type*/, const Property_t *prop) {
+void ProtocolParser::printPropertyListingPreamble(const Node* node, const Property_t *prop) {
+    printPropertyListingPreamble(serialInterface, node, prop);
+}
+
+void ProtocolParser::printPropertyListingPreamble(AbstractSerialInterface* serialInterface, const Node* /*TODO node AND type*/, const Property_t *prop) {
     if (prop->accessLevel == PropAccessLevel_ReadWrite) {
         serialInterface->writeBytes((const uint8_t*) "PW_", 3);
     } else {
@@ -475,7 +479,7 @@ ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Prop
         break;
     }
     case PropertyType_BinarySegmented: {
-        BinaryPacketInterface binaryPacketInterface(value, sizeof(value));
+        BinaryPacketInterface binaryPacketInterface(serialInterface, node, prop);
         result = (node->*prop->binarySegmentedGet)(&binaryPacketInterface);
         break;
     }
@@ -667,32 +671,28 @@ void ProtocolParser::printNodePathRecursively(const Node* node) {
     }
 }
 
-ProtocolParser::BinaryPacketInterface::BinaryPacketInterface(char* dest, uint16_t maxLength): dest(dest), bytesLeft(maxLength) {
+ProtocolParser::BinaryPacketInterface::BinaryPacketInterface(
+        AbstractSerialInterface* serialInterface, const Node* node, const Property_t* prop) :
+        serialInterface(serialInterface), node(node), prop(prop) {
 }
 
 bool ProtocolParser::BinaryPacketInterface::startTransaction() {
-    return (bytesLeft > 0);
+    // if the transaction is started, result must be Ok
+    ProtocolParser::printPropertyListingPreamble(serialInterface, node, prop);
+    return true;
 }
 
 bool ProtocolParser::BinaryPacketInterface::transmitData(const uint8_t *data, uint16_t length) {
-    if (length > bytesLeft / 2) {
-        return true; //TODO false;
-    }
-
-    while (length > 0) {
-        int len = sprintf(dest, "%02X", *data); //TODO optimize
-        dest += len;
-        bytesLeft -= len;
-
-        data++;
-        length--;
-    }
-    dest[0] = '\0';
+    ProtocolServerUtils::printBinaryDataAsHex(serialInterface, data, length);
     return true;
 }
 
 bool ProtocolParser::BinaryPacketInterface::commitTransaction() {
+    serialInterface->writeBytes((const uint8_t*) "\n", 1);
     return true;
 }
 
-void ProtocolParser::BinaryPacketInterface::cancelTransaction() {}
+void ProtocolParser::BinaryPacketInterface::cancelTransaction() {
+    // invalid operation
+    exit(1);
+}

@@ -31,14 +31,15 @@ private:
 
     class BinaryPacketInterface: public AbstractPacketInterface {
     public:
-        BinaryPacketInterface(char* dest, uint16_t maxLength);
+        BinaryPacketInterface(AbstractSerialInterface* serialInterface, const Node* node, const Property_t* prop);
         bool startTransaction();
         bool transmitData(const uint8_t *data, uint16_t length);
         bool commitTransaction();
         void cancelTransaction();
     private:
-        char* dest;
-        uint16_t bytesLeft;
+        AbstractSerialInterface* serialInterface;
+        const Node* node;
+        const Property_t* prop;
     };
 
     static ProtocolParser* instance;
@@ -49,7 +50,8 @@ private:
     uint16_t subscribedNodeCount;
 
     void listNode(Node *node);
-    void printPropertyListingPreamble(const Node* node, const Property_t *prop);
+    inline void printPropertyListingPreamble(const Node* node, const Property_t *prop);
+    static void printPropertyListingPreamble(AbstractSerialInterface* serialInterface, const Node* node, const Property_t *prop);
     ProtocolResult_t listProperty(const Node *node, const Property_t *prop);
     ProtocolResult_t printPropertyValue(const Node *node, const Property_t *prop);
     ProtocolResult_t setProperty(Node *node, const Property_t *prop, const char* value);
