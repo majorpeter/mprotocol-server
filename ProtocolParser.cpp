@@ -92,7 +92,7 @@ void ProtocolParser::handleSubscriptions() {
         while (mask != 0) {
             // is LSB a changed property
             if (mask & 0x01) {
-                serialInterface->writeString("CHG ");
+                /*TODO serialInterface->writeString("CHG ");
                 this->printNodePathRecursively(subscribedNodes[i]);
                 serialInterface->writeBytes((uint8_t*) ".", 1);
                 serialInterface->writeString(subscribedNodes[i]->getProperties()[propIndex]->name);
@@ -100,7 +100,7 @@ void ProtocolParser::handleSubscriptions() {
                 char buffer[256];    //TODO buffer size? maybe a common buffer?
                 getProperty(subscribedNodes[i], subscribedNodes[i]->getProperties()[propIndex], buffer);    //TODO print instead
                 *serialInterface << buffer;
-                serialInterface->writeBytes((uint8_t*) "\n", 1);
+                serialInterface->writeBytes((uint8_t*) "\n", 1);*/
             }
 
             mask = mask >> 1;
@@ -381,32 +381,31 @@ void ProtocolParser::listNode(Node *node) {
     serialInterface->writeString("}\n");
 }
 
+void ProtocolParser::printPropertyListingPreamble(const Node* /*TODO node AND type*/, const Property_t *prop) {
+    if (prop->accessLevel == PropAccessLevel_ReadWrite) {
+        serialInterface->writeBytes((const uint8_t*) "PW_", 3);
+    } else {
+        serialInterface->writeBytes((const uint8_t*) "P_", 2);
+    }
+    serialInterface->writeString(Property_TypeToStr(prop->type));
+    serialInterface->writeBytes((const uint8_t*) " ", 1);
+    serialInterface->writeString(prop->name);
+
+    if (prop->accessLevel != PropAccessLevel_Invokable) {
+        serialInterface->writeBytes((const uint8_t*) "=", 1);
+    }
+}
+
 ProtocolResult_t ProtocolParser::listProperty(const Node *node, const Property_t *prop) {
     ProtocolResult_t result = ProtocolResult_InternalError;
-    char buffer[256];
-    char *s = buffer;
-    if (prop->accessLevel == PropAccessLevel_ReadWrite) {
-        strcpy(s, "PW_");
-        s+=3;
-    } else {
-        strcpy(s, "P_");
-        s+=2;
-    }
-    strcpy(s, Property_TypeToStr(prop->type));
-    strcat(s, " ");
-    strcat(s, prop->name);
-    s += strlen(s);
     if (prop->accessLevel != PropAccessLevel_Invokable) {
-        *s = '=';
-        s++;
-        *s = '\0';    // just to make sure
-
         if (prop->type == PropertyType_Binary) {
             uint8_t *ptr = NULL;
             uint16_t length = 0;
             result = (node->*prop->binaryGet)((void**) &ptr, &length);
             if (result == ProtocolResult_Ok) {
-                serialInterface->writeString(buffer);
+                printPropertyListingPreamble(node, prop);
+                //TODO remove this hack
                 while (length > 0) {
                     char buf[3];
                     sprintf(buf, "%02X", *ptr);
@@ -414,60 +413,80 @@ ProtocolResult_t ProtocolParser::listProperty(const Node *node, const Property_t
                     ptr++;
                     length--;
                 }
-                serialInterface->writeBytes((uint8_t*) "\n", 1);
+                serialInterface->writeBytes((const uint8_t*) "\n", 1);
             }
             return result;
         }
-        result = getProperty(node, prop, s);
+
+        result = printPropertyValue(node, prop);
         if (result != ProtocolResult_Ok) {
             serialInterface->writeString(resultToStr(result));
         }
     }
-    strcat(s, "\n");
-    serialInterface->writeString(buffer);
     return result;
 }
 
-ProtocolResult_t ProtocolParser::getProperty(const Node *node, const Property_t *prop, char* value) {
+ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Property_t *prop) {
     node = (Node*)((int)node - prop->nodeOffset);
     ProtocolResult_t result = ProtocolResult_InternalError;
+    char value[256]; //TODO optimize out
 
     switch (prop->type) {
-    case PropertyType_Bool:
-        result = (node->*prop->boolGet)((bool*)value);
+    case PropertyType_Bool: {
+        bool boolValue;
+        result = (node->*prop->boolGet)(&boolValue);
         if (result == ProtocolResult_Ok) {
-            value[0] = (*(bool*)value) ? '1' : '0';
-            value[1] = '\0';
+            printPropertyListingPreamble(node, prop);
+            serialInterface->writeBytes((const uint8_t*) (boolValue ? "1\n" : "0\n"), 2);
         }
         break;
-    case PropertyType_Int32:
-        result = (node->*prop->intGet)((int32_t*)value);
+    }
+    case PropertyType_Int32: {
+        int32_t intValue;
+        result = (node->*prop->intGet)(&intValue);
         if (result == ProtocolResult_Ok) {
-            sprintf(value, "%ld", (long int) *(int32_t*)value);
+            printPropertyListingPreamble(node, prop);
+            sprintf(value, "%ld", (long int) intValue);
+            serialInterface->writeString(value);
+            serialInterface->writeBytes((const uint8_t*) "\n", 1);
         }
         break;
-    case PropertyType_Uint32:
-        result = (node->*prop->uintGet)((uint32_t*)value);
+    }
+    case PropertyType_Uint32: {
+        uint32_t uintValue;
+        result = (node->*prop->uintGet)(&uintValue);
         if (result == ProtocolResult_Ok) {
-            sprintf(value, "%lu", (long unsigned int) *(uint32_t*)value);
+            printPropertyListingPreamble(node, prop);
+            sprintf(value, "%lu", (long unsigned int) uintValue);
+            serialInterface->writeString(value);
+            serialInterface->writeBytes((const uint8_t*) "\n", 1);
         }
         break;
+    }
     case PropertyType_Float32: {
-        float f;
-        result = (node->*prop->floatGet)(&f);
+        float floatValue;
+        result = (node->*prop->floatGet)(&floatValue);
         if (result == ProtocolResult_Ok) {
-            value += ProtocolServerUtils::printFloat(value, f);
+            printPropertyListingPreamble(node, prop);
+            ProtocolServerUtils::printFloat(value, floatValue);
+            serialInterface->writeString(value);
+            serialInterface->writeBytes((const uint8_t*) "\n", 1);
         }
         break;
     }
     case PropertyType_String:
         result = (node->*prop->stringGet)(value);
+        if (result == ProtocolResult_Ok) {
+            printPropertyListingPreamble(node, prop);
+            serialInterface->writeString(value);
+            serialInterface->writeBytes((const uint8_t*) "\n", 1);
+        }
         break;
     case PropertyType_Binary:
-        result = this->getBinaryProperty(node, prop, value);
+        //TODO
         break;
     case PropertyType_BinarySegmented: {
-        BinaryPacketInterface binaryPacketInterface(value, 64);
+        BinaryPacketInterface binaryPacketInterface(value, sizeof(value));
         result = (node->*prop->binarySegmentedGet)(&binaryPacketInterface);
         break;
     }
