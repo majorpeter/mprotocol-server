@@ -59,4 +59,40 @@ int printFloat(char* dest, float f) {
     return dest - dest_orig;
 }
 
+uint8_t charToByte(char c) {
+    if (c < '0') {
+        return 0xff;
+    }
+
+    if (c <= '9') {
+        return c - '0';
+    }
+
+    if (c < 'A') {
+        return 0xff;
+    }
+    if (c <= 'F') {
+        return c - 'A' + 0x0a;
+    }
+    return 0xff;
+}
+
+/**
+ * parses hex string
+ * @return true if the string was valid
+ */
+bool binaryStringToArray(const char* from, uint8_t* to) {
+    while (from[0] != '\0') {
+        uint8_t val0 = charToByte(from[0]);
+        uint8_t val1 = charToByte(from[1]);
+        if ((val0 == 0xff) || (val1 == 0xff)) {
+            return false;
+        }
+        *to = (val0 << 4) | val1;
+        from += 2;
+        to++;
+    }
+    return true;
+}
+
 } /* end namespace ProtocolServerUtils */

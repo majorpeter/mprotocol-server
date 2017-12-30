@@ -53,9 +53,7 @@ private:
     ProtocolResult_t getProperty(const Node *node, const Property_t *prop, char* value);
     ProtocolResult_t setProperty(Node *node, const Property_t *prop, const char* value);
     ProtocolResult_t getBinaryProperty(const Node *node, const Property_t *prop, char* value);
-    static uint8_t charToByte(char c);
     static ProtocolFunction decodeFunction(const char* str, uint16_t length);
-    bool binaryStringToArray(const char* from, uint8_t* to);
 
     void handleReceivedCommands();
     void printNodePathRecursively(const Node* node);
