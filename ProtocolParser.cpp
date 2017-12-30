@@ -414,7 +414,6 @@ ProtocolResult_t ProtocolParser::listProperty(const Node *node, const Property_t
 ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Property_t *prop) {
     node = (Node*)((int)node - prop->nodeOffset);
     ProtocolResult_t result = ProtocolResult_InternalError;
-    char value[256]; //TODO optimize out
 
     switch (prop->type) {
     case PropertyType_Bool: {
@@ -431,8 +430,9 @@ ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Prop
         result = (node->*prop->intGet)(&intValue);
         if (result == ProtocolResult_Ok) {
             printPropertyListingPreamble(node, prop);
-            sprintf(value, "%ld", (long int) intValue);
-            serialInterface->writeString(value);
+            char buffer[12];
+            sprintf(buffer, "%ld", (long int) intValue);
+            serialInterface->writeString(buffer);
             serialInterface->writeBytes((const uint8_t*) "\n", 1);
         }
         break;
@@ -442,8 +442,9 @@ ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Prop
         result = (node->*prop->uintGet)(&uintValue);
         if (result == ProtocolResult_Ok) {
             printPropertyListingPreamble(node, prop);
-            sprintf(value, "%lu", (long unsigned int) uintValue);
-            serialInterface->writeString(value);
+            char buffer[12];
+            sprintf(buffer, "%lu", (long unsigned int) uintValue);
+            serialInterface->writeString(buffer);
             serialInterface->writeBytes((const uint8_t*) "\n", 1);
         }
         break;
@@ -453,20 +454,23 @@ ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Prop
         result = (node->*prop->floatGet)(&floatValue);
         if (result == ProtocolResult_Ok) {
             printPropertyListingPreamble(node, prop);
-            ProtocolServerUtils::printFloat(value, floatValue);
-            serialInterface->writeString(value);
+            char buffer[20];
+            ProtocolServerUtils::printFloat(buffer, floatValue);
+            serialInterface->writeString(buffer);
             serialInterface->writeBytes((const uint8_t*) "\n", 1);
         }
         break;
     }
-    case PropertyType_String:
-        result = (node->*prop->stringGet)(value);
+    case PropertyType_String: {
+        char buffer[64]; //TODO length limitation in stringGet()?
+        result = (node->*prop->stringGet)(buffer);
         if (result == ProtocolResult_Ok) {
             printPropertyListingPreamble(node, prop);
-            serialInterface->writeString(value);
+            serialInterface->writeString(buffer);
             serialInterface->writeBytes((const uint8_t*) "\n", 1);
         }
         break;
+    }
     case PropertyType_Binary: {
         uint8_t *ptr = NULL;
         uint16_t length = 0;
@@ -484,7 +488,6 @@ ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Prop
         break;
     }
     default:
-        value[0] = '\0';
         break;
     }
     return result;
