@@ -63,7 +63,6 @@ private:
     static ProtocolFunction decodeFunction(const char* str, uint16_t length);
 
     void handleReceivedCommands();
-    static void printNodePathRecursively(AbstractSerialInterface* serialInterface, const Node* node);
 };
 
 #endif /* PROTOCOLPARSER_H_ */

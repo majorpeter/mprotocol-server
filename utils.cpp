@@ -7,6 +7,8 @@
 
 #include "utils.h"
 #include "AbstractSerialInterface.h"
+#include "mprotocol-nodes/Node.h"
+#include "mprotocol-nodes/RootNode.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -113,6 +115,20 @@ void printBinaryDataAsHex(AbstractSerialInterface* serialInterface, const uint8_
         serialInterface->writeBytes((uint8_t*) buf, 2);
         data++;
         length--;
+    }
+}
+
+void printNodePathRecursively(AbstractSerialInterface* serialInterface, const Node* node) {
+    const Node* parent = node->getParent();
+    if (parent != NULL) {
+        printNodePathRecursively(serialInterface, parent);
+        if (parent != RootNode::getInstance()) {
+            serialInterface->writeBytes((uint8_t*) '/', 1);
+        }
+    }
+
+    if (node->getName() != NULL) {
+        serialInterface->writeString(node->getName());
     }
 }
 

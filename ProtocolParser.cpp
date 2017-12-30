@@ -393,7 +393,7 @@ void ProtocolParser::printPropertyListingPreamble(
         break;
     case PropertyListingPreambleType::Change:
         serialInterface->writeString("CHG ");
-        printNodePathRecursively(serialInterface, node);
+        ProtocolServerUtils::printNodePathRecursively(serialInterface, node);
         serialInterface->writeBytes((uint8_t*) ".", 1);
         serialInterface->writeString(prop->name);
         break;
@@ -662,20 +662,6 @@ ProtocolResult_t ProtocolParser::removeNodeFromSubscribed(Node *node) {
         }
     }
     return result;
-}
-
-void ProtocolParser::printNodePathRecursively(AbstractSerialInterface* serialInterface, const Node* node) {
-    const Node* parent = node->getParent();
-    if (parent != NULL) {
-        printNodePathRecursively(serialInterface, parent);
-        if (parent != RootNode::getInstance()) {
-            serialInterface->writeBytes((uint8_t*) '/', 1);
-        }
-    }
-
-    if (node->getName() != NULL) {
-        serialInterface->writeString(node->getName());
-    }
 }
 
 ProtocolParser::BinaryPacketInterface::BinaryPacketInterface(
