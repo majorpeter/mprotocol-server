@@ -89,18 +89,10 @@ void ProtocolParser::handleSubscriptions() {
         uint32_t mask = subscribedNodes[i]->getAndClearPropChangeMask();
         uint8_t propIndex = 0;
 
-        while (mask != 0) {
+        while (mask != 0x00) {
             // is LSB a changed property
             if (mask & 0x01) {
-                /*TODO serialInterface->writeString("CHG ");
-                this->printNodePathRecursively(subscribedNodes[i]);
-                serialInterface->writeBytes((uint8_t*) ".", 1);
-                serialInterface->writeString(subscribedNodes[i]->getProperties()[propIndex]->name);
-                serialInterface->writeBytes((uint8_t*) "=", 1);
-                char buffer[256];    //TODO buffer size? maybe a common buffer?
-                getProperty(subscribedNodes[i], subscribedNodes[i]->getProperties()[propIndex], buffer);    //TODO print instead
-                *serialInterface << buffer;
-                serialInterface->writeBytes((uint8_t*) "\n", 1);*/
+                printPropertyValue(subscribedNodes[i], subscribedNodes[i]->getProperties()[propIndex], PropertyListingPreambleType::Change);
             }
 
             mask = mask >> 1;
@@ -381,19 +373,31 @@ void ProtocolParser::listNode(Node *node) {
     serialInterface->writeString("}\n");
 }
 
-void ProtocolParser::printPropertyListingPreamble(const Node* node, const Property_t *prop) {
-    printPropertyListingPreamble(serialInterface, node, prop);
+void ProtocolParser::printPropertyListingPreamble(const Node* node, const Property_t *prop, PropertyListingPreambleType type) {
+    printPropertyListingPreamble(serialInterface, node, prop, type);
 }
 
-void ProtocolParser::printPropertyListingPreamble(AbstractSerialInterface* serialInterface, const Node* /*TODO node AND type*/, const Property_t *prop) {
-    if (prop->accessLevel == PropAccessLevel_ReadWrite) {
-        serialInterface->writeBytes((const uint8_t*) "PW_", 3);
-    } else {
-        serialInterface->writeBytes((const uint8_t*) "P_", 2);
+void ProtocolParser::printPropertyListingPreamble(
+        AbstractSerialInterface* serialInterface, const Node* node,
+        const Property_t *prop, PropertyListingPreambleType type) {
+    switch (type) {
+    case PropertyListingPreambleType::Get:
+        if (prop->accessLevel == PropAccessLevel_ReadWrite) {
+            serialInterface->writeBytes((const uint8_t*) "PW_", 3);
+        } else {
+            serialInterface->writeBytes((const uint8_t*) "P_", 2);
+        }
+        serialInterface->writeString(Property_TypeToStr(prop->type));
+        serialInterface->writeBytes((const uint8_t*) " ", 1);
+        serialInterface->writeString(prop->name);
+        break;
+    case PropertyListingPreambleType::Change:
+        serialInterface->writeString("CHG ");
+        printNodePathRecursively(serialInterface, node);
+        serialInterface->writeBytes((uint8_t*) ".", 1);
+        serialInterface->writeString(prop->name);
+        break;
     }
-    serialInterface->writeString(Property_TypeToStr(prop->type));
-    serialInterface->writeBytes((const uint8_t*) " ", 1);
-    serialInterface->writeString(prop->name);
 
     if (prop->accessLevel != PropAccessLevel_Invokable) {
         serialInterface->writeBytes((const uint8_t*) "=", 1);
@@ -403,7 +407,7 @@ void ProtocolParser::printPropertyListingPreamble(AbstractSerialInterface* seria
 ProtocolResult_t ProtocolParser::listProperty(const Node *node, const Property_t *prop) {
     ProtocolResult_t result = ProtocolResult_InternalError;
     if (prop->accessLevel != PropAccessLevel_Invokable) {
-        result = printPropertyValue(node, prop);
+        result = printPropertyValue(node, prop, PropertyListingPreambleType::Get);
         if (result != ProtocolResult_Ok) {
             serialInterface->writeString(resultToStr(result));
         }
@@ -411,7 +415,7 @@ ProtocolResult_t ProtocolParser::listProperty(const Node *node, const Property_t
     return result;
 }
 
-ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Property_t *prop) {
+ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Property_t *prop, PropertyListingPreambleType listingType) {
     node = (Node*)((int)node - prop->nodeOffset);
     ProtocolResult_t result = ProtocolResult_InternalError;
 
@@ -420,7 +424,7 @@ ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Prop
         bool boolValue;
         result = (node->*prop->boolGet)(&boolValue);
         if (result == ProtocolResult_Ok) {
-            printPropertyListingPreamble(node, prop);
+            printPropertyListingPreamble(node, prop, listingType);
             serialInterface->writeBytes((const uint8_t*) (boolValue ? "1\n" : "0\n"), 2);
         }
         break;
@@ -429,7 +433,7 @@ ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Prop
         int32_t intValue;
         result = (node->*prop->intGet)(&intValue);
         if (result == ProtocolResult_Ok) {
-            printPropertyListingPreamble(node, prop);
+            printPropertyListingPreamble(node, prop, listingType);
             char buffer[12];
             sprintf(buffer, "%ld", (long int) intValue);
             serialInterface->writeString(buffer);
@@ -441,7 +445,7 @@ ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Prop
         uint32_t uintValue;
         result = (node->*prop->uintGet)(&uintValue);
         if (result == ProtocolResult_Ok) {
-            printPropertyListingPreamble(node, prop);
+            printPropertyListingPreamble(node, prop, listingType);
             char buffer[12];
             sprintf(buffer, "%lu", (long unsigned int) uintValue);
             serialInterface->writeString(buffer);
@@ -453,7 +457,7 @@ ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Prop
         float floatValue;
         result = (node->*prop->floatGet)(&floatValue);
         if (result == ProtocolResult_Ok) {
-            printPropertyListingPreamble(node, prop);
+            printPropertyListingPreamble(node, prop, listingType);
             char buffer[20];
             ProtocolServerUtils::printFloat(buffer, floatValue);
             serialInterface->writeString(buffer);
@@ -465,7 +469,7 @@ ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Prop
         char buffer[64]; //TODO length limitation in stringGet()?
         result = (node->*prop->stringGet)(buffer);
         if (result == ProtocolResult_Ok) {
-            printPropertyListingPreamble(node, prop);
+            printPropertyListingPreamble(node, prop, listingType);
             serialInterface->writeString(buffer);
             serialInterface->writeBytes((const uint8_t*) "\n", 1);
         }
@@ -476,14 +480,14 @@ ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Prop
         uint16_t length = 0;
         result = (node->*prop->binaryGet)((void**) &ptr, &length);
         if (result == ProtocolResult_Ok) {
-            printPropertyListingPreamble(node, prop);
+            printPropertyListingPreamble(node, prop, listingType);
             ProtocolServerUtils::printBinaryDataAsHex(serialInterface, ptr, length);
             serialInterface->writeBytes((const uint8_t*) "\n", 1);
         }
         break;
     }
     case PropertyType_BinarySegmented: {
-        BinaryPacketInterface binaryPacketInterface(serialInterface, node, prop);
+        BinaryPacketInterface binaryPacketInterface(serialInterface, node, prop, listingType);
         result = (node->*prop->binarySegmentedGet)(&binaryPacketInterface);
         break;
     }
@@ -660,28 +664,29 @@ ProtocolResult_t ProtocolParser::removeNodeFromSubscribed(Node *node) {
     return result;
 }
 
-void ProtocolParser::printNodePathRecursively(const Node* node) {
+void ProtocolParser::printNodePathRecursively(AbstractSerialInterface* serialInterface, const Node* node) {
     const Node* parent = node->getParent();
     if (parent != NULL) {
-        this->printNodePathRecursively(parent);
+        printNodePathRecursively(serialInterface, parent);
         if (parent != RootNode::getInstance()) {
-            this->serialInterface->writeBytes((uint8_t*) '/', 1);
+            serialInterface->writeBytes((uint8_t*) '/', 1);
         }
     }
 
     if (node->getName() != NULL) {
-        this->serialInterface->writeString(node->getName());
+        serialInterface->writeString(node->getName());
     }
 }
 
 ProtocolParser::BinaryPacketInterface::BinaryPacketInterface(
-        AbstractSerialInterface* serialInterface, const Node* node, const Property_t* prop) :
-        serialInterface(serialInterface), node(node), prop(prop) {
+        AbstractSerialInterface* serialInterface, const Node* node,
+        const Property_t* prop, PropertyListingPreambleType listingType) :
+        serialInterface(serialInterface), node(node), prop(prop), listingType(listingType) {
 }
 
 bool ProtocolParser::BinaryPacketInterface::startTransaction() {
     // if the transaction is started, result must be Ok
-    ProtocolParser::printPropertyListingPreamble(serialInterface, node, prop);
+    ProtocolParser::printPropertyListingPreamble(serialInterface, node, prop, listingType);
     return true;
 }
 

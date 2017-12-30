@@ -28,10 +28,13 @@ public:
     ProtocolResult_t removeNodeFromSubscribed(Node *node);
 private:
     enum class ProtocolFunction {Unknown, Invalid, GET, SET, CALL, OPEN, CLOSE, MAN};
+    enum class PropertyListingPreambleType {Get, Change};
 
     class BinaryPacketInterface: public AbstractPacketInterface {
     public:
-        BinaryPacketInterface(AbstractSerialInterface* serialInterface, const Node* node, const Property_t* prop);
+        BinaryPacketInterface(AbstractSerialInterface* serialInterface,
+                const Node* node, const Property_t* prop,
+                PropertyListingPreambleType listingType);
         bool startTransaction();
         bool transmitData(const uint8_t *data, uint16_t length);
         bool commitTransaction();
@@ -40,6 +43,7 @@ private:
         AbstractSerialInterface* serialInterface;
         const Node* node;
         const Property_t* prop;
+        PropertyListingPreambleType listingType;
     };
 
     static ProtocolParser* instance;
@@ -50,16 +54,16 @@ private:
     uint16_t subscribedNodeCount;
 
     void listNode(Node *node);
-    inline void printPropertyListingPreamble(const Node* node, const Property_t *prop);
-    static void printPropertyListingPreamble(AbstractSerialInterface* serialInterface, const Node* node, const Property_t *prop);
+    inline void printPropertyListingPreamble(const Node* node, const Property_t *prop, PropertyListingPreambleType type);
+    static void printPropertyListingPreamble(AbstractSerialInterface* serialInterface, const Node* node, const Property_t *prop, PropertyListingPreambleType type);
     ProtocolResult_t listProperty(const Node *node, const Property_t *prop);
-    ProtocolResult_t printPropertyValue(const Node *node, const Property_t *prop);
+    ProtocolResult_t printPropertyValue(const Node *node, const Property_t *prop, PropertyListingPreambleType listingType);
     ProtocolResult_t setProperty(Node *node, const Property_t *prop, const char* value);
     ProtocolResult_t getBinaryProperty(const Node *node, const Property_t *prop, char* value);
     static ProtocolFunction decodeFunction(const char* str, uint16_t length);
 
     void handleReceivedCommands();
-    void printNodePathRecursively(const Node* node);
+    static void printNodePathRecursively(AbstractSerialInterface* serialInterface, const Node* node);
 };
 
 #endif /* PROTOCOLPARSER_H_ */
