@@ -399,25 +399,6 @@ void ProtocolParser::printPropertyListingPreamble(const Node* /*TODO node AND ty
 ProtocolResult_t ProtocolParser::listProperty(const Node *node, const Property_t *prop) {
     ProtocolResult_t result = ProtocolResult_InternalError;
     if (prop->accessLevel != PropAccessLevel_Invokable) {
-        if (prop->type == PropertyType_Binary) {
-            uint8_t *ptr = NULL;
-            uint16_t length = 0;
-            result = (node->*prop->binaryGet)((void**) &ptr, &length);
-            if (result == ProtocolResult_Ok) {
-                printPropertyListingPreamble(node, prop);
-                //TODO remove this hack
-                while (length > 0) {
-                    char buf[3];
-                    sprintf(buf, "%02X", *ptr);
-                    serialInterface->writeBytes((uint8_t*) buf, 2);
-                    ptr++;
-                    length--;
-                }
-                serialInterface->writeBytes((const uint8_t*) "\n", 1);
-            }
-            return result;
-        }
-
         result = printPropertyValue(node, prop);
         if (result != ProtocolResult_Ok) {
             serialInterface->writeString(resultToStr(result));
@@ -482,9 +463,23 @@ ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Prop
             serialInterface->writeBytes((const uint8_t*) "\n", 1);
         }
         break;
-    case PropertyType_Binary:
-        //TODO
+    case PropertyType_Binary: {
+        uint8_t *ptr = NULL;
+        uint16_t length = 0;
+        result = (node->*prop->binaryGet)((void**) &ptr, &length);
+        if (result == ProtocolResult_Ok) {
+            printPropertyListingPreamble(node, prop);
+            while (length > 0) {
+                char buf[3];
+                sprintf(buf, "%02X", *ptr);
+                serialInterface->writeBytes((uint8_t*) buf, 2);
+                ptr++;
+                length--;
+            }
+            serialInterface->writeBytes((const uint8_t*) "\n", 1);
+        }
         break;
+    }
     case PropertyType_BinarySegmented: {
         BinaryPacketInterface binaryPacketInterface(value, sizeof(value));
         result = (node->*prop->binarySegmentedGet)(&binaryPacketInterface);
