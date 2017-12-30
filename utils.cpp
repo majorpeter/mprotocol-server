@@ -59,7 +59,7 @@ int printFloat(char* dest, float f) {
     return dest - dest_orig;
 }
 
-uint8_t charToByte(char c) {
+uint8_t hexCharToInt(char c) {
     if (c < '0') {
         return 0xff;
     }
@@ -74,6 +74,14 @@ uint8_t charToByte(char c) {
     if (c <= 'F') {
         return c - 'A' + 0x0a;
     }
+
+    if (c < 'a') {
+        return 0xff;
+    }
+    if (c <= 'f') {
+        return c - 'a' + 0x0a;
+    }
+
     return 0xff;
 }
 
@@ -83,8 +91,8 @@ uint8_t charToByte(char c) {
  */
 bool binaryStringToByteArray(uint8_t* to, const char* from, uint16_t maxLength) {
     while ((from[0] != '\0') && (maxLength > 0)) {
-        uint8_t val0 = charToByte(from[0]);
-        uint8_t val1 = charToByte(from[1]);
+        uint8_t val0 = hexCharToInt(from[0]);
+        uint8_t val1 = hexCharToInt(from[1]);
         if ((val0 == 0xff) || (val1 == 0xff)) {
             return false;
         }

@@ -13,7 +13,7 @@
 namespace ProtocolServerUtils {
 
 int printFloat(char* dest, float f);
-uint8_t charToByte(char c);
+uint8_t hexCharToInt(char c);
 bool binaryStringToByteArray(uint8_t* to, const char* from, uint16_t maxLength);
 
 } /* end namespace ProtocolServerUtils */
