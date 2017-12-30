@@ -81,8 +81,8 @@ uint8_t charToByte(char c) {
  * parses hex string
  * @return true if the string was valid
  */
-bool binaryStringToArray(const char* from, uint8_t* to) {
-    while (from[0] != '\0') {
+bool binaryStringToByteArray(uint8_t* to, const char* from, uint16_t maxLength) {
+    while ((from[0] != '\0') && (maxLength > 0)) {
         uint8_t val0 = charToByte(from[0]);
         uint8_t val1 = charToByte(from[1]);
         if ((val0 == 0xff) || (val1 == 0xff)) {
@@ -91,7 +91,9 @@ bool binaryStringToArray(const char* from, uint8_t* to) {
         *to = (val0 << 4) | val1;
         from += 2;
         to++;
+        maxLength--;
     }
+    
     return true;
 }
 

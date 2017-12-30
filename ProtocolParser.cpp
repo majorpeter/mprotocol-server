@@ -536,7 +536,7 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
             return ProtocolResult_InvalidValue;
         }
         uint8_t data[length / 2];
-        if (!ProtocolServerUtils::binaryStringToArray(value, data)) {
+        if (!ProtocolServerUtils::binaryStringToByteArray(data, value, length / 2)) {
             return  ProtocolResult_InvalidValue;
         }
         result = (node->*prop->binarySet)(data, length / 2);
@@ -548,7 +548,7 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
             return ProtocolResult_InvalidValue;
         }
         uint8_t data[length / 2];
-        if (!ProtocolServerUtils::binaryStringToArray(value, data)) {
+        if (!ProtocolServerUtils::binaryStringToByteArray(data, value, length / 2)) {
             return  ProtocolResult_InvalidValue;
         }
 

@@ -14,7 +14,7 @@ namespace ProtocolServerUtils {
 
 int printFloat(char* dest, float f);
 uint8_t charToByte(char c);
-bool binaryStringToArray(const char* from, uint8_t* to);    //TODO max length
+bool binaryStringToByteArray(uint8_t* to, const char* from, uint16_t maxLength);
 
 } /* end namespace ProtocolServerUtils */
 
