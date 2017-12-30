@@ -469,13 +469,7 @@ ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Prop
         result = (node->*prop->binaryGet)((void**) &ptr, &length);
         if (result == ProtocolResult_Ok) {
             printPropertyListingPreamble(node, prop);
-            while (length > 0) {
-                char buf[3];
-                sprintf(buf, "%02X", *ptr);
-                serialInterface->writeBytes((uint8_t*) buf, 2);
-                ptr++;
-                length--;
-            }
+            ProtocolServerUtils::printBinaryDataAsHex(serialInterface, ptr, length);
             serialInterface->writeBytes((const uint8_t*) "\n", 1);
         }
         break;

@@ -6,6 +6,7 @@
  */
 
 #include "utils.h"
+#include "AbstractSerialInterface.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -103,6 +104,16 @@ bool binaryStringToByteArray(uint8_t* to, const char* from, uint16_t maxLength) 
     }
     
     return true;
+}
+
+void printBinaryDataAsHex(AbstractSerialInterface* serialInterface, const uint8_t *data, uint16_t length) {
+    while (length > 0) {
+        char buf[3];
+        sprintf(buf, "%02X", *data);
+        serialInterface->writeBytes((uint8_t*) buf, 2);
+        data++;
+        length--;
+    }
 }
 
 } /* end namespace ProtocolServerUtils */
