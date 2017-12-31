@@ -5,6 +5,8 @@ INC_FOLDERS = $(MODULES_DIR) $(SERVER_DIR)
 INC_FLAGS = $(addprefix -I,$(INC_FOLDERS))
 
 SRC := test.cpp \
+       ProtocolTester.cpp \
+       BufferInterface.cpp \
        TestNode.cpp \
        $(MODULES_DIR)/mprotocol-nodes/Node.cpp \
        $(MODULES_DIR)/mprotocol-nodes/Property.cpp \
