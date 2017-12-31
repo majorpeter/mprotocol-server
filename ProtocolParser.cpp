@@ -411,6 +411,9 @@ ProtocolResult_t ProtocolParser::listProperty(const Node *node, const Property_t
         if (result != ProtocolResult_Ok) {
             serialInterface->writeString(resultToStr(result));
         }
+    } else {
+        printPropertyListingPreamble(serialInterface, node, prop, PropertyListingPreambleType::Get);
+        serialInterface->writeBytes((const uint8_t*) "\n", 1);
     }
     return result;
 }
