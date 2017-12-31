@@ -6,6 +6,8 @@
  */
 
 #include "ProtocolParser.h"
+#include "mprotocol-nodes/Node.h"
+#include "mprotocol-nodes/RootNode.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -43,13 +45,18 @@ private:
     char buffer[bufferLength];
 };
 
+class TestNode: public Node {
+public:
+    TestNode(): Node("TEST", "Test node") {}
+};
+
 class ProtocolTester: private ProtocolParser {
 public:
     ProtocolTester(): ProtocolParser(&buffer) {
         testCount = failCount = 0;
     }
 
-    void test(const char* input, const char* expectedResult) {
+    void test(const char* input, const char* expectedResult = "") {
         testCount++;
 
         buffer.clear();
@@ -73,10 +80,11 @@ public:
     }
 
     void printResults() {
+        std::cout << std::endl;
         if (failCount != 0) {
             std::cout << failCount << " tests failed." << std::endl;
         }
-        std::cout << (testCount - failCount) << '/' << testCount << " tests passed" << std::endl;
+        std::cout << (testCount - failCount) << '/' << testCount << " tests passed." << std::endl << std::endl;
     }
 private:
     BufferInterface buffer;
@@ -88,7 +96,7 @@ private:
             if ((('0' <= *s) && (*s <= '9')) ||
                     (('a' <= *s) && (*s <= 'z')) ||
                     (('A' <= *s) && (*s <= 'Z')) ||
-                    (*s == '/') || (*s == '{') || (*s == '}') || (*s == '.')) {
+                    (*s == '/') || (*s == '{') || (*s == '}') || (*s == '.') || (*s == ' ')) {
                 fwrite(s, 1, 1, stdout);
             } else {
                 printf("<0x%02x>", *s);
@@ -100,8 +108,10 @@ private:
 
 int main() {
     ProtocolTester tester;
+    RootNode::getInstance()->addChild(new TestNode());
 
-    tester.test("GET /\r\n", "{\n}\n");
+    tester.test("GET /\r\n", "{\nN TEST\n}\n");
+    tester.test("GET /TEST", "{\n}\n");
 
     tester.printResults();
 
