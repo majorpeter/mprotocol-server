@@ -96,14 +96,30 @@ private:
     void printEscaped(const char* s) {
         while (*s != '\0') {
             if ((('0' <= *s) && (*s <= '9')) ||
-                    (('a' <= *s) && (*s <= 'z')) ||
-                    (('A' <= *s) && (*s <= 'Z')) ||
-                    (*s == '/') || (*s == '.') ||
-                    (*s == '{') || (*s == '}') ||
-                    (*s == '_') || (*s == '=') || (*s == ' ')) {
+                (('a' <= *s) && (*s <= 'z')) ||
+                (('A' <= *s) && (*s <= 'Z'))) {
                 fwrite(s, 1, 1, stdout);
             } else {
-                printf("<0x%02x>", *s);
+                switch (*s) {
+                case '/':
+                case '.':
+                case '{':
+                case '}':
+                case '_':
+                case '=':
+                case ' ':
+                    fwrite(s, 1, 1, stdout);
+                    break;
+                case '\r':
+                    fwrite("\\r", 1, 2, stdout);
+                    break;
+                case '\n':
+                    fwrite("\\n", 1, 2, stdout);
+                    break;
+                default:
+                    printf("<0x%02x>", *s);
+                    break;
+                }
             }
             s++;
         }
