@@ -26,7 +26,9 @@ $(TARGET): $(OBJ)
 %.o: %.cpp
 	g++ $(INC_FLAGS) $< -c -o $@
 
-.PHONY: clean
+.PHONY: all clean
+
+all: $(TARGET)
 
 clean:
 	rm -f $(OBJ) $(TARGET)
