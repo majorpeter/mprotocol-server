@@ -3,6 +3,7 @@ SERVER_DIR = ..
 
 INC_FOLDERS = $(MODULES_DIR) $(SERVER_DIR)
 INC_FLAGS = $(addprefix -I,$(INC_FOLDERS))
+CXX_FLAGS = -g3 -Og
 
 SRC := test.cpp \
        ProtocolTester.cpp \
@@ -21,10 +22,10 @@ TARGET = test
 
 $(TARGET): $(OBJ)
 	@echo $(OBJ)
-	g++ $(OBJ) -o $@
+	g++ $(OBJ) $(CXX_FLAGS) -o $@
 
 %.o: %.cpp
-	g++ $(INC_FLAGS) $< -c -o $@
+	g++ $(INC_FLAGS) $(CXX_FLAGS) $< -c -o $@
 
 .PHONY: all clean
 
