@@ -47,7 +47,14 @@ private:
 
 class TestNode: public Node {
 public:
-    TestNode(): Node("TEST", "Test node") {}
+    TestNode(): Node("TEST", "Test node") {
+        //TODO props
+    }
+};
+
+class EmptyNode: public Node {
+public:
+    EmptyNode(): Node("EMPTY", "Empty node") {}
 };
 
 class ProtocolTester: private ProtocolParser {
@@ -108,10 +115,12 @@ private:
 
 int main() {
     ProtocolTester tester;
+    RootNode::getInstance()->addChild(new EmptyNode());
     RootNode::getInstance()->addChild(new TestNode());
 
-    tester.test("GET /\r\n", "{\nN TEST\n}\n");
-    tester.test("GET /TEST", "{\n}\n");
+    tester.test("GET /\r\n", "{\nN EMPTY\nN TEST\n}\n");
+    tester.test("GET /EMPTY\r\n", "{\n}\n");
+    tester.test("MAN /EMPTY\r\n", "MAN Empty node\n");
 
     tester.printResults();
 
