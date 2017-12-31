@@ -6,6 +6,8 @@
  */
 
 #include "ProtocolParser.h"
+#include "TestNode.h"
+
 #include "mprotocol-nodes/Node.h"
 #include "mprotocol-nodes/RootNode.h"
 
@@ -43,13 +45,6 @@ private:
     static const uint16_t bufferLength = 1024;
     uint16_t writeIndex;
     char buffer[bufferLength];
-};
-
-class TestNode: public Node {
-public:
-    TestNode(): Node("TEST", "Test node") {
-        //TODO props
-    }
 };
 
 class EmptyNode: public Node {
@@ -103,7 +98,9 @@ private:
             if ((('0' <= *s) && (*s <= '9')) ||
                     (('a' <= *s) && (*s <= 'z')) ||
                     (('A' <= *s) && (*s <= 'Z')) ||
-                    (*s == '/') || (*s == '{') || (*s == '}') || (*s == '.') || (*s == ' ')) {
+                    (*s == '/') || (*s == '.') ||
+                    (*s == '{') || (*s == '}') ||
+                    (*s == '_') || (*s == '=') || (*s == ' ')) {
                 fwrite(s, 1, 1, stdout);
             } else {
                 printf("<0x%02x>", *s);
@@ -121,6 +118,7 @@ int main() {
     tester.test("GET /\r\n", "{\nN EMPTY\nN TEST\n}\n");
     tester.test("GET /EMPTY\r\n", "{\n}\n");
     tester.test("MAN /EMPTY\r\n", "MAN Empty node\n");
+    tester.test("GET /TEST\r\n", "{\nP_FLOAT32 Pi=3.14\n}\n");
 
     tester.printResults();
 
