@@ -46,14 +46,19 @@ private:
 class ProtocolTester: private ProtocolParser {
 public:
     ProtocolTester(): ProtocolParser(&buffer) {
+        testCount = failCount = 0;
     }
 
     void test(const char* input, const char* expectedResult) {
+        testCount++;
+
         buffer.clear();
         this->receiveBytes((const uint8_t*) input, strlen(input));
         this->handler();
 
         if (strcmp(buffer.getBuffer(), expectedResult) != 0) {
+            failCount++;
+
             std::cout << "Test failed!" << std::endl;
             std::cout << "\tInput: ";
             printEscaped(input);
@@ -66,8 +71,17 @@ public:
             std::cout << std::endl;
         }
     }
+
+    void printResults() {
+        if (failCount != 0) {
+            std::cout << failCount << " tests failed." << std::endl;
+        }
+        std::cout << (testCount - failCount) << '/' << testCount << " tests passed" << std::endl;
+    }
 private:
     BufferInterface buffer;
+    unsigned int testCount;
+    unsigned int failCount;
 
     void printEscaped(const char* s) {
         while (*s != '\0') {
@@ -88,7 +102,8 @@ int main() {
     ProtocolTester tester;
 
     tester.test("GET /\r\n", "{\n}\n");
-    std::cout << "Done." << std::endl;
+
+    tester.printResults();
 
     return 0;
 }
