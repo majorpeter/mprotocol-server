@@ -416,7 +416,7 @@ ProtocolResult_t ProtocolParser::listProperty(const Node *node, const Property_t
 }
 
 ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Property_t *prop, PropertyListingPreambleType listingType) {
-    node = (Node*)((int)node - prop->nodeOffset);
+    node = (Node*)((uintptr_t)node - prop->nodeOffset);
     ProtocolResult_t result = ProtocolResult_InternalError;
 
     switch (prop->type) {
@@ -498,7 +498,7 @@ ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Prop
 }
 
 ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop, const char *value) {
-    node = (Node*)((size_t)node - prop->nodeOffset);
+    node = (Node*)((uintptr_t)node - prop->nodeOffset);
     ProtocolResult_t result = ProtocolResult_InternalError;
 
     switch (prop->type) {
@@ -571,7 +571,7 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
             return  ProtocolResult_InvalidValue;
         }
 
-        AbstractPacketInterface* packetInterface = (AbstractPacketInterface*) ((uint8_t*) node + (uint32_t) prop->binarySegmentedSet);
+        AbstractPacketInterface* packetInterface = (AbstractPacketInterface*) ((uintptr_t) node + (uintptr_t) prop->binarySegmentedSet);
         if (!packetInterface->startTransaction()) {
             return ProtocolResult_InternalError;
         }
