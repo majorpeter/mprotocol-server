@@ -30,6 +30,7 @@ GET /RED
 {
 PW_BOOL Enabled=1
 PW_UINT32 Pwm=35
+P_METHOD toggle
 }
 ```
 
@@ -52,9 +53,19 @@ readable meaning.
 
 ## `CALL` command
 The `CALL` command is used to invoke method's of `Node`s. Methods are not
-like readable properties, they can obly be invoked.
+like readable properties, they can only be invoked.
 
-(TODO: example)
+```
+CALL /RED.toggle
+E0:Ok
+```
+
+Methods can be invoked with an optional string argument (passed as `const char*` to the method):
+
+```
+CALL /TIM4.setMode=PWM
+E0:Ok
+```
 
 ## `OPEN` command
 The `OPEN` command is used to subscribe to a `Node`'s changes (see

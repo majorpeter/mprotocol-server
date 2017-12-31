@@ -38,7 +38,7 @@ int main() {
     tester.test("MAN /TEST.Pi\n", "MAN Math PI\n");
 
     tester.test("CALL /TEST.Void\n", "E0:Ok\n");
-    tester.test("CALL /TEST.IntErrorMethod\n", "E8:Internal error\n");
+    tester.test("CALL /TEST.IntErrorMethod=TextInput\n", "E8:Internal error\n");
 
     tester.test("GET /TEST.NonExistent\r\n", "E4:Property not found\n");
     tester.test("CALL /TEST.NonExistent\r\n", "E4:Property not found\n");
