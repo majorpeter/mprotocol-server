@@ -31,7 +31,7 @@ int main() {
 
     tester.test("GET /NONEXISTENT\r\n", "E3:Node not found\n");
 
-    tester.test("GET /TEST\r\n", "{\nP_FLOAT32 Pi=3.14\n}\n");
+    tester.test("GET /TEST\r\n", "{\nP_FLOAT32 Pi=3.14\nP_METHOD Void\n}\n");
     tester.test("MAN /TEST\r\n", "MAN Test node\n");
 
     tester.test("GET /TEST.Pi\n", "P_FLOAT32 Pi=3.14\n");
