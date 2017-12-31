@@ -54,6 +54,7 @@ void ProtocolTester::printEscaped(const char* s) {
             switch (*s) {
             case '/':
             case '.':
+            case ':':
             case '{':
             case '}':
             case '_':

@@ -28,10 +28,16 @@ int main() {
     tester.test("GET /\r\n", "{\nN EMPTY\nN TEST\n}\n");
     tester.test("GET /EMPTY\r\n", "{\n}\n");
     tester.test("MAN /EMPTY\r\n", "MAN Empty node\n");
+
+    tester.test("GET /NONEXISTENT\r\n", "E3:Node not found\n");
+
     tester.test("GET /TEST\r\n", "{\nP_FLOAT32 Pi=3.14\n}\n");
     tester.test("MAN /TEST\r\n", "MAN Test node\n");
+
     tester.test("GET /TEST.Pi\n", "P_FLOAT32 Pi=3.14\n");
     tester.test("MAN /TEST.Pi\n", "MAN Math PI\n");
+
+    tester.test("GET /TEST.NonExistent\r\n", "E4:Property not found\n");
 
     tester.printResults();
 
