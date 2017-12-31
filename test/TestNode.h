@@ -14,6 +14,7 @@ class TestNode: public Node {
 public:
     DECLARE_PROP_FLOAT32_RO(Pi);
     DECLARE_PROP_METHOD(Void);
+    DECLARE_PROP_METHOD(IntErrorMethod);
 
     TestNode();
 };
