@@ -6,13 +6,16 @@
  */
 
 #include "MemoryNode.h"
+#include <string.h>
 
 MK_PROP_INT32_RW(MemoryNode, Int, "Integer");
 MK_PROP_BOOL_RW(MemoryNode, Bool, "Boolean");
+MK_PROP_STRING_RW(MemoryNode, String, "String");
 
 PROP_ARRAY(props) = {
         PROP_ADDRESS(MemoryNode, Int),
         PROP_ADDRESS(MemoryNode, Bool),
+        PROP_ADDRESS(MemoryNode, String),
 };
 
 MemoryNode::MemoryNode(): Node("MEMORY", "A node that stores information") {
@@ -20,6 +23,7 @@ MemoryNode::MemoryNode(): Node("MEMORY", "A node that stores information") {
 
     mInt = 0;
     mBool = false;
+    string[0] = '\0';
 }
 
 ProtocolResult_t MemoryNode::getInt(int32_t* dest) const {
@@ -38,5 +42,19 @@ ProtocolResult_t MemoryNode::getBool(bool* dest) const {
 }
 ProtocolResult_t MemoryNode::setBool(bool value) {
     mBool = value;
+    return ProtocolResult_Ok;
+}
+
+ProtocolResult_t MemoryNode::getString(char* dest) const {
+    strcpy(dest, string);
+    return ProtocolResult_Ok;
+}
+
+ProtocolResult_t MemoryNode::setString(const char* value) {
+    if (strlen(value) >= sizeof(string)) {
+        return ProtocolResult_InvalidValue;
+    }
+
+    strcpy(string, value);
     return ProtocolResult_Ok;
 }

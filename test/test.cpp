@@ -53,6 +53,10 @@ int main() {
     tester.test("SET /MEMORY.Bool=10\n", "E7:Invalid value\n");
     tester.test("SET /MEMORY.Bool=1\n", "E0:Ok\n");
     tester.test("GET /MEMORY.Bool\n", "PW_BOOL Bool=1\n");
+    tester.test("GET /MEMORY.String\n", "PW_STRING String=\n");
+    tester.test("SET /MEMORY.String=test\n", "E0:Ok\n");
+    tester.test("SET /MEMORY.String=testLONGstringTEST\n", "E7:Invalid value\n");
+    tester.test("GET /MEMORY.String\n", "PW_STRING String=test\n");
 
     tester.printResults();
 
