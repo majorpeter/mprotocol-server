@@ -12,6 +12,8 @@
 
 class TestNode: public Node {
 public:
+    DECLARE_PROP_UINT32_RO(UintMax);
+    DECLARE_PROP_INT32_RO(IntMin);
     DECLARE_PROP_FLOAT32_RO(Pi);
     DECLARE_PROP_METHOD(Void);
     DECLARE_PROP_METHOD(IntErrorMethod);

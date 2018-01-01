@@ -57,8 +57,9 @@ void ProtocolTester::printEscaped(const char* s) {
             case ':':
             case '{':
             case '}':
-            case '_':
+            case '-':
             case '=':
+            case '_':
             case ' ':
                 fwrite(s, 1, 1, stdout);
                 break;

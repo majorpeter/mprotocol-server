@@ -31,7 +31,7 @@ int main() {
 
     tester.test("GET /NONEXISTENT\r\n", "E3:Node not found\n");
 
-    tester.test("GET /TEST\r\n", "{\nP_FLOAT32 Pi=3.14\nP_METHOD Void\nP_METHOD IntErrorMethod\n}\n");
+    tester.test("GET /TEST\r\n", "{\nP_UINT32 UintMax=4294967295\nP_INT32 IntMin=-2147483648\nP_FLOAT32 Pi=3.14\nP_METHOD Void\nP_METHOD IntErrorMethod\n}\n");
     tester.test("MAN /TEST\r\n", "MAN Test node\n");
 
     tester.test("GET /TEST.Pi\n", "P_FLOAT32 Pi=3.14\n");
