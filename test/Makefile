@@ -9,6 +9,7 @@ SRC := test.cpp \
        ProtocolTester.cpp \
        BufferInterface.cpp \
        TestNode.cpp \
+       MemoryNode.cpp \
        $(MODULES_DIR)/mprotocol-nodes/Node.cpp \
        $(MODULES_DIR)/mprotocol-nodes/Property.cpp \
        $(MODULES_DIR)/mprotocol-nodes/RootNode.cpp \

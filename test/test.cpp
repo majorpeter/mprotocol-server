@@ -7,6 +7,7 @@
 
 #include "ProtocolTester.h"
 #include "TestNode.h"
+#include "MemoryNode.h"
 
 #include "mprotocol-nodes/RootNode.h"
 
@@ -24,8 +25,9 @@ int main() {
     ProtocolTester tester;
     RootNode::getInstance()->addChild(new EmptyNode());
     RootNode::getInstance()->addChild(new TestNode());
+    RootNode::getInstance()->addChild(new MemoryNode());
 
-    tester.test("GET /\r\n", "{\nN EMPTY\nN TEST\n}\n");
+    tester.test("GET /\r\n", "{\nN EMPTY\nN TEST\nN MEMORY\n}\n");
     tester.test("GET /EMPTY\r\n", "{\n}\n");
     tester.test("MAN /EMPTY\r\n", "MAN Empty node\n");
 
@@ -42,6 +44,10 @@ int main() {
 
     tester.test("GET /TEST.NonExistent\r\n", "E4:Property not found\n");
     tester.test("CALL /TEST.NonExistent\r\n", "E4:Property not found\n");
+
+    tester.test("GET /MEMORY.Int\n", "PW_INT32 Int=0\n");
+    tester.test("SET /MEMORY.Int=-1\n", "E0:Ok\n");
+    tester.test("GET /MEMORY.Int\n", "PW_INT32 Int=-1\n");
 
     tester.printResults();
 
