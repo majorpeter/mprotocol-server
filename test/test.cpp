@@ -48,6 +48,11 @@ int main() {
     tester.test("GET /MEMORY.Int\n", "PW_INT32 Int=0\n");
     tester.test("SET /MEMORY.Int=-1\n", "E0:Ok\n");
     tester.test("GET /MEMORY.Int\n", "PW_INT32 Int=-1\n");
+    tester.test("GET /MEMORY.Bool\n", "PW_BOOL Bool=0\n");
+    tester.test("SET /MEMORY.Bool=-1\n", "E7:Invalid value\n");
+    tester.test("SET /MEMORY.Bool=10\n", "E7:Invalid value\n");
+    tester.test("SET /MEMORY.Bool=1\n", "E0:Ok\n");
+    tester.test("GET /MEMORY.Bool\n", "PW_BOOL Bool=1\n");
 
     tester.printResults();
 

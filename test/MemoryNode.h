@@ -13,10 +13,11 @@
 class MemoryNode: public Node {
 public:
     DECLARE_PROP_INT32_RW(Int);
+    DECLARE_PROP_BOOL_RW(Bool);
     MemoryNode();
 private:
     int32_t mInt;
-
+    bool mBool;
 };
 
 #endif /* MODULES_MPROTOCOL_SERVER_TEST_MEMORYNODE_H_ */

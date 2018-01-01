@@ -506,7 +506,13 @@ ProtocolResult_t ProtocolParser::setProperty(Node *node, const Property_t *prop,
 
     switch (prop->type) {
     case PropertyType_Bool:
-        result = (node->*prop->boolSet)(value[0] != '0');
+        if (strcmp(value, "1") == 0) {
+            result = (node->*prop->boolSet)(true);
+        } else if (strcmp(value, "0") == 0) {
+            result = (node->*prop->boolSet)(false);
+        } else {
+            result= ProtocolResult_InvalidValue;
+        }
         break;
     case PropertyType_Int32: {
         long int i;
