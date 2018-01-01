@@ -57,6 +57,14 @@ int main() {
     tester.test("SET /MEMORY.String=test\n", "E0:Ok\n");
     tester.test("SET /MEMORY.String=testLONGstringTEST\n", "E7:Invalid value\n");
     tester.test("GET /MEMORY.String\n", "PW_STRING String=test\n");
+    tester.test("GET /MEMORY.Binary\n", "PW_BINARY Binary=00000000\n");
+    tester.test("SET /MEMORY.Binary=FF000000\n", "E0:Ok\n");
+    tester.test("GET /MEMORY.Binary\n", "PW_BINARY Binary=FF000000\n");
+    tester.test("SET /MEMORY.Binary=000000ff\n", "E0:Ok\n");
+    tester.test("GET /MEMORY.Binary\n", "PW_BINARY Binary=000000FF\n");
+    tester.test("SET /MEMORY.Binary=z1000000\n", "E7:Invalid value\n");
+    tester.test("SET /MEMORY.Binary=00\n", "E7:Invalid value\n");
+    tester.test("SET /MEMORY.Binary=100000019\n", "E7:Invalid value\n");
 
     tester.printResults();
 

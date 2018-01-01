@@ -15,11 +15,13 @@ public:
     DECLARE_PROP_INT32_RW(Int);
     DECLARE_PROP_BOOL_RW(Bool);
     DECLARE_PROP_STRING_RW(String);
+    DECLARE_PROP_BINARY_RW(Binary);
     MemoryNode();
 private:
     int32_t mInt;
     bool mBool;
     char string[10];
+    uint32_t binary;
 };
 
 #endif /* MODULES_MPROTOCOL_SERVER_TEST_MEMORYNODE_H_ */
