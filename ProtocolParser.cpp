@@ -490,8 +490,8 @@ ProtocolResult_t ProtocolParser::printPropertyValue(const Node *node, const Prop
         break;
     }
     case PropertyType_BinarySegmented: {
-        BinaryPacketInterface binaryPacketInterface(serialInterface, node, prop, listingType);
-        result = (node->*prop->binarySegmentedGet)(&binaryPacketInterface);
+        BinarySerialInterface binarySerialInterface(serialInterface, node, prop, listingType);
+        result = (node->*prop->binarySegmentedGet)(&binarySerialInterface);
         break;
     }
     default:
@@ -673,29 +673,27 @@ ProtocolResult_t ProtocolParser::removeNodeFromSubscribed(Node *node) {
     return result;
 }
 
-ProtocolParser::BinaryPacketInterface::BinaryPacketInterface(
+ProtocolParser::BinarySerialInterface::BinarySerialInterface(
         AbstractSerialInterface* serialInterface, const Node* node,
         const Property_t* prop, PropertyListingPreambleType listingType) :
         serialInterface(serialInterface), node(node), prop(prop), listingType(listingType) {
+    hasTransmittedBytes = false;
 }
 
-bool ProtocolParser::BinaryPacketInterface::startTransaction() {
-    // if the transaction is started, result must be Ok
-    ProtocolParser::printPropertyListingPreamble(serialInterface, node, prop, listingType);
-    return true;
+ProtocolParser::BinarySerialInterface::~BinarySerialInterface() {
+    if (hasTransmittedBytes) {
+        serialInterface->writeBytes((const uint8_t*) "\n", 1);
+    }
 }
 
-bool ProtocolParser::BinaryPacketInterface::transmitData(const uint8_t *data, uint16_t length) {
+bool ProtocolParser::BinarySerialInterface::writeBytes(const uint8_t *data, uint16_t length) {
+
+    if (!hasTransmittedBytes) {
+        // if the transaction is started, result must be Ok
+        ProtocolParser::printPropertyListingPreamble(serialInterface, node, prop, listingType);
+        hasTransmittedBytes = true;
+    }
+
     ProtocolServerUtils::printBinaryDataAsHex(serialInterface, data, length);
     return true;
-}
-
-bool ProtocolParser::BinaryPacketInterface::commitTransaction() {
-    serialInterface->writeBytes((const uint8_t*) "\n", 1);
-    return true;
-}
-
-void ProtocolParser::BinaryPacketInterface::cancelTransaction() {
-    // invalid operation
-    exit(1);
 }

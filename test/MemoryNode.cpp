@@ -12,21 +12,24 @@ MK_PROP_INT32_RW(MemoryNode, Int, "Integer");
 MK_PROP_BOOL_RW(MemoryNode, Bool, "Boolean");
 MK_PROP_STRING_RW(MemoryNode, String, "String");
 MK_PROP_BINARY_RW(MemoryNode, Binary, "Binary data on 4 bytes");
+MK_PROP_BINARY_SEG_RW(MemoryNode, BinarySeg, "Segmented binary data");
 
 PROP_ARRAY(props) = {
         PROP_ADDRESS(MemoryNode, Int),
         PROP_ADDRESS(MemoryNode, Bool),
         PROP_ADDRESS(MemoryNode, String),
-        PROP_ADDRESS(MemoryNode, Binary)
+        PROP_ADDRESS(MemoryNode, Binary),
+        PROP_ADDRESS(MemoryNode, BinarySeg),
 };
 
-MemoryNode::MemoryNode(): Node("MEMORY", "A node that stores information") {
+MemoryNode::MemoryNode(): Node("MEMORY", "A node that stores information"), setBinarySeg(this) {
     NODE_SET_PROPS(props);
 
     mInt = 0;
     mBool = false;
     string[0] = '\0';
     binary = 0;
+    binarySegBufferPos = 0;
 }
 
 ProtocolResult_t MemoryNode::getInt(int32_t* dest) const {
@@ -75,4 +78,34 @@ ProtocolResult_t MemoryNode::setBinary(const void* value, uint16_t length) {
 
     memcpy(&binary, value, length);
     return ProtocolResult_Ok;
+}
+
+ProtocolResult_t MemoryNode::getBinarySeg(AbstractSerialInterface* serialInterface) {
+    if (!serialInterface->writeBytes(binarySegBuffer, binarySegBufferPos)) {
+        return ProtocolResult_InternalError;
+    }
+    return ProtocolResult_Ok;
+}
+
+bool MemoryNode::SetBinarySeg::startTransaction() {
+    that->binarySegBufferPos = 0;
+    return true;
+}
+
+bool MemoryNode::SetBinarySeg::transmitData(const uint8_t* data, uint16_t length) {
+    if (that->binarySegBufferPos + length >= binarySegBufferSize) {
+        return false;
+    }
+
+    memcpy(that->binarySegBuffer + that->binarySegBufferPos, data, length);
+    that->binarySegBufferPos += length;
+
+    return true;
+}
+
+bool MemoryNode::SetBinarySeg::commitTransaction() {
+    return true;
+}
+
+void MemoryNode::SetBinarySeg::cancelTransaction() {
 }

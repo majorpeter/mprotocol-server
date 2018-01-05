@@ -30,20 +30,19 @@ private:
     enum class ProtocolFunction {Unknown, Invalid, GET, SET, CALL, OPEN, CLOSE, MAN};
     enum class PropertyListingPreambleType {Get, Change};
 
-    class BinaryPacketInterface: public AbstractPacketInterface {
+    class BinarySerialInterface: public AbstractSerialInterface {
     public:
-        BinaryPacketInterface(AbstractSerialInterface* serialInterface,
+        BinarySerialInterface(AbstractSerialInterface* serialInterface,
                 const Node* node, const Property_t* prop,
                 PropertyListingPreambleType listingType);
-        bool startTransaction();
-        bool transmitData(const uint8_t *data, uint16_t length);
-        bool commitTransaction();
-        void cancelTransaction();
+        ~BinarySerialInterface();
+        bool writeBytes(const uint8_t *data, uint16_t length);
     private:
         AbstractSerialInterface* serialInterface;
         const Node* node;
         const Property_t* prop;
         PropertyListingPreambleType listingType;
+        bool hasTransmittedBytes;
     };
 
     static ProtocolParser* instance;

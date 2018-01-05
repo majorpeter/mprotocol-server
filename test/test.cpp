@@ -16,6 +16,8 @@
 
 #include <iostream>
 
+#define ARBITRARY_HEX_DATA "D27F7D3667133720FC2D4998BF98F55A419023B5B54A9569ECC5CFD525774307AC06595F6801E713"
+
 class EmptyNode: public Node {
 public:
     EmptyNode(): Node("EMPTY", "Empty node") {}
@@ -65,6 +67,13 @@ int main() {
     tester.test("SET /MEMORY.Binary=z1000000\n", "E7:Invalid value\n");
     tester.test("SET /MEMORY.Binary=00\n", "E7:Invalid value\n");
     tester.test("SET /MEMORY.Binary=100000019\n", "E7:Invalid value\n");
+    tester.test("GET /MEMORY.BinarySeg\n", "PW_BINARY BinarySeg=\n");
+    tester.test("SET /MEMORY.BinarySeg=FF000000\n", "E0:Ok\n");
+    tester.test("GET /MEMORY.BinarySeg\n", "PW_BINARY BinarySeg=FF000000\n");
+    tester.test("SET /MEMORY.BinarySeg=" ARBITRARY_HEX_DATA "\n", "E0:Ok\n");
+    tester.test("GET /MEMORY.BinarySeg\n", "PW_BINARY BinarySeg=" ARBITRARY_HEX_DATA "\n");
+    tester.test("SET /MEMORY.BinarySeg=\n", "E0:Ok\n");
+    tester.test("GET /MEMORY.BinarySeg\n", "PW_BINARY BinarySeg=\n");
 
     tester.printResults();
 
