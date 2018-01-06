@@ -268,7 +268,11 @@ void ProtocolParser::receiveByte(char c) {
         break;
     case State::SetCallProperty:
         if (!isLineEnd(c)) {
-            appendByteToStateMachineRx(c);
+            if (!appendByteToStateMachineRx(c)) {
+                // longer value than MaxLiteralLength is not allowed
+                stateMachine.state = State::Invalid;
+                stateMachine.result = ProtocolResult_InvalidValue;
+            }
         } else {
             appendByteToStateMachineRx('\0');
             reportResult(setProperty(stateMachine.node, stateMachine.prop, stateMachine.rxBuffer));
@@ -280,14 +284,21 @@ void ProtocolParser::receiveByte(char c) {
     }
 }
 
-void ProtocolParser::appendByteToStateMachineRx(char c) {
+/**
+ * appends a byte to stateMachine.rxBuffer
+ * @param c character to append
+ * @return true if the buffer had enough space
+ */
+bool ProtocolParser::appendByteToStateMachineRx(char c) {
     if (stateMachine.rxBufferPosition < MaxLiteralLength) {
         stateMachine.rxBuffer[stateMachine.rxBufferPosition] = c;
         stateMachine.rxBufferPosition++;
+        return true;
     } else if (c == '\0') {
         // always put the terminating NULL
         stateMachine.rxBuffer[MaxLiteralLength] = '\0';
     }
+    return false;
 }
 
 bool ProtocolParser::isLineEnd(char c) {

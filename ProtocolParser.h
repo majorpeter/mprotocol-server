@@ -88,7 +88,7 @@ private:
 
     void resetStateMachine();
     void receiveByte(char c);
-    inline void appendByteToStateMachineRx(char c);
+    inline bool appendByteToStateMachineRx(char c);
     inline bool isLineEnd(char c);
 };
 
