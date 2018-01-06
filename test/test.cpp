@@ -17,6 +17,8 @@
 #include <iostream>
 
 #define ARBITRARY_HEX_DATA "D27F7D3667133720FC2D4998BF98F55A419023B5B54A9569ECC5CFD525774307AC06595F6801E713"
+#define ARBITRARY_LONG_HEX_DATA ARBITRARY_HEX_DATA ARBITRARY_HEX_DATA ARBITRARY_HEX_DATA ARBITRARY_HEX_DATA
+#define ARBITRARY_HEX_PATTERN_64 "0000111122223333444455556666777788889999AAAABBBBCCCCDDDDEEEEFFFF"
 
 class EmptyNode: public Node {
 public:
@@ -76,6 +78,10 @@ int main() {
     tester.test("GET /MEMORY.BinarySeg\n", "PW_BINARY BinarySeg=" ARBITRARY_HEX_DATA "\n");
     tester.test("SET /MEMORY.BinarySeg=\n", "E0:Ok\n");
     tester.test("GET /MEMORY.BinarySeg\n", "PW_BINARY BinarySeg=\n");
+    tester.test("SET /MEMORY.BinarySeg=" ARBITRARY_LONG_HEX_DATA "\n", "E0:Ok\n");
+    tester.test("GET /MEMORY.BinarySeg\n", "PW_BINARY BinarySeg=" ARBITRARY_LONG_HEX_DATA "\n");
+    tester.test("SET /MEMORY.BinarySeg=AABB" ARBITRARY_HEX_PATTERN_64 "\n", "E0:Ok\n");
+    tester.test("GET /MEMORY.BinarySeg\n", "PW_BINARY BinarySeg=AABB" ARBITRARY_HEX_PATTERN_64 "\n");
 
     tester.printResults();
 

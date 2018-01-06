@@ -236,6 +236,13 @@ void ProtocolParser::receiveByte(char c) {
                 if (stateMachine.prop != NULL) {
                     stateMachine.state = State::SetCallProperty;
                     stateMachine.rxBufferPosition = 0;
+                    if (stateMachine.prop->type == PropertyType_BinarySegmented) {
+                        bool result = getBinarySegmentedSetter(stateMachine.node, stateMachine.prop)->startTransaction();
+                        if (!result) {
+                            stateMachine.state = State::Invalid;
+                            stateMachine.result = ProtocolResult_InternalError;
+                        }
+                    }
                 } else {
                     stateMachine.state = State::Invalid;
                     stateMachine.result = ProtocolResult_PropertyNotFound;
@@ -268,19 +275,67 @@ void ProtocolParser::receiveByte(char c) {
         break;
     case State::SetCallProperty:
         if (!isLineEnd(c)) {
-            if (!appendByteToStateMachineRx(c)) {
-                // longer value than MaxLiteralLength is not allowed
-                stateMachine.state = State::Invalid;
-                stateMachine.result = ProtocolResult_InvalidValue;
+            bool bufferFull = !appendByteToStateMachineRx(c);
+            if (bufferFull) {
+                if (stateMachine.prop->type != PropertyType_BinarySegmented) {
+                    // longer value than MaxLiteralLength is not allowed
+                    stateMachine.state = State::Invalid;
+                    stateMachine.result = ProtocolResult_InvalidValue;
+                } else {
+                    if (!ProtocolServerUtils::binaryStringToByteArray(
+                            (uint8_t*) stateMachine.rxBuffer,
+                            stateMachine.rxBuffer,
+                            stateMachine.rxBufferPosition / 2)) {
+                        stateMachine.state = State::Invalid;
+                        stateMachine.result = ProtocolResult_InvalidValue;
+                    } else {
+                        bool result = getBinarySegmentedSetter(stateMachine.node, stateMachine.prop)->transmitData((const uint8_t*) stateMachine.rxBuffer, stateMachine.rxBufferPosition / 2);
+                        if (!result) {
+                            stateMachine.state = State::Invalid;
+                            stateMachine.result = ProtocolResult_InvalidValue;
+                        } else {
+                            stateMachine.rxBufferPosition = 0;
+                            // append the byte that did not fit
+                            appendByteToStateMachineRx(c);
+                        }
+                    }
+                }
             }
         } else {
-            appendByteToStateMachineRx('\0');
-            reportResult(setProperty(stateMachine.node, stateMachine.prop, stateMachine.rxBuffer));
+            if (stateMachine.prop->type != PropertyType_BinarySegmented) {
+                appendByteToStateMachineRx('\0');
+                reportResult(setProperty(stateMachine.node, stateMachine.prop, stateMachine.rxBuffer));
+            } else {
+                if ((stateMachine.rxBufferPosition & 1) || !ProtocolServerUtils::binaryStringToByteArray(
+                        (uint8_t*) stateMachine.rxBuffer,
+                        stateMachine.rxBuffer,
+                        stateMachine.rxBufferPosition / 2)) {
+                    stateMachine.state = State::Invalid;
+                    stateMachine.result = ProtocolResult_InvalidValue;
+                    break;
+                } else {
+                    bool result = getBinarySegmentedSetter(stateMachine.node, stateMachine.prop)->transmitData((const uint8_t*) stateMachine.rxBuffer, stateMachine.rxBufferPosition / 2);
+                    if (!result) {
+                        stateMachine.state = State::Invalid;
+                        stateMachine.result = ProtocolResult_InvalidValue;
+                        break;
+                    }
+                }
+
+                bool result = getBinarySegmentedSetter(stateMachine.node, stateMachine.prop)->commitTransaction();
+                if (result == true) {
+                    reportResult(ProtocolResult_Ok);
+                } else {
+                    getBinarySegmentedSetter(stateMachine.node, stateMachine.prop)->cancelTransaction();
+                    reportResult(ProtocolResult_InternalError);
+                }
+            }
             resetStateMachine();
         }
         break;
     default:
-        exit(1);
+        reportResult(ProtocolResult_InternalError);
+        break;
     }
 }
 
