@@ -7,9 +7,6 @@
 #include <cstring>
 #include <cstdlib>
 
-#define RX_BUFFER_SIZE 256
-#define MAX_SUBSCRIBED_NODES 15
-
 #ifndef SIMULATOR
 #define SUBSCRIPTION_HANDLE_PERIOD_MS 100
 #else
@@ -19,11 +16,8 @@
 ProtocolParser* ProtocolParser::instance = NULL;
 
 ProtocolParser::ProtocolParser(AbstractSerialInterface* serialInterface): serialInterface(serialInterface) {
-    rxBuffer = new char[RX_BUFFER_SIZE];
-    rxPosition = 0;
-
-    subscribedNodes = new Node*[MAX_SUBSCRIBED_NODES];
     subscribedNodeCount = 0;
+    resetStateMachine();
 
     if (instance != NULL) {
         exit(1);    // kill application if invoked twice
@@ -33,8 +27,6 @@ ProtocolParser::ProtocolParser(AbstractSerialInterface* serialInterface): serial
 }
 
 ProtocolParser::~ProtocolParser() {
-    delete[] rxBuffer;
-    delete[] subscribedNodes;
     instance = NULL;
 }
 
@@ -48,10 +40,13 @@ ProtocolParser* ProtocolParser::getExistingInstance() {
 
 void ProtocolParser::switchSerialInterface(AbstractSerialInterface* interface) {
     if (this->serialInterface != NULL) {
+        // disable RX from previous interface
         this->serialInterface->setUpLayer(NULL);
     }
 
-    rxPosition = 0;
+    resetStateMachine();
+
+    // connect to new interface
     this->serialInterface = interface;
     interface->setUpLayer(this);
 }
@@ -65,19 +60,12 @@ void ProtocolParser::listen() {
 }
 
 bool ProtocolParser::receiveBytes(const uint8_t* bytes, uint16_t len) {
-    bool result = true;
-    if (rxPosition + len > RX_BUFFER_SIZE) {
-        result = false;
-        len = RX_BUFFER_SIZE - rxPosition;
+    while (len > 0) {
+        receiveByte((char) *bytes);
+        bytes++;
+        len--;
     }
-
-    if (len == 0) {
-        return result;
-    }
-
-    memcpy(rxBuffer + rxPosition, bytes, len);
-    rxPosition += len;
-    return result;
+    return true;
 }
 
 /**
@@ -108,7 +96,7 @@ void ProtocolParser::handleSubscriptions() {
  * @note also moves an incomplete command from the buffer to the start position of buffer
  */
 void ProtocolParser::handleReceivedCommands() {
-    int rxLineStart = 0;
+    /*int rxLineStart = 0;
     while (1) {
         // find \n or \r at end of line
         char *nl = (char*) memchr(rxBuffer + rxLineStart, '\n', rxPosition - rxLineStart);
@@ -156,7 +144,7 @@ void ProtocolParser::handleReceivedCommands() {
     if (rxPosition == RX_BUFFER_SIZE) {
         rxPosition = 0;
         reportResult(ProtocolResult_SyntaxError);
-    }
+    }*/
 }
 
 void ProtocolParser::handler() {
@@ -200,8 +188,99 @@ ProtocolParser::ProtocolFunction ProtocolParser::decodeFunction(const char* str,
     return ProtocolFunction::Invalid;
 }
 
+void ProtocolParser::resetStateMachine() {
+    stateMachine.state = State::Idle;
+    stateMachine.function = ProtocolFunction::Unknown;
+    stateMachine.result = ProtocolResult_Ok;
+    stateMachine.node = NULL;
+    stateMachine.rxBufferPosition = 0;
+}
+
+void ProtocolParser::receiveByte(char c) {
+    switch (stateMachine.state) {
+    case State::Idle:
+        if (!isLineEnd(c)) {
+            appendByteToStateMachineRx(c);
+            stateMachine.state = State::DecodeFunction;
+        }
+        break;
+    case State::Invalid:
+        if (isLineEnd(c)) {
+            reportResult(stateMachine.result);
+            resetStateMachine();
+        }
+        break;
+    case State::DecodeFunction:
+        appendByteToStateMachineRx(c);
+        if (c == ' ') {
+            //TODO not append space
+            stateMachine.function = decodeFunction(stateMachine.rxBuffer, stateMachine.rxBufferPosition);
+            if (stateMachine.function != ProtocolFunction::Unknown) {
+                stateMachine.state = State::FindNode;
+                stateMachine.rxBufferPosition = 0;
+            } else {
+                stateMachine.state = State::Invalid;
+                stateMachine.result = ProtocolResult_InvalidFunc;
+            }
+        }
+        break;
+    case State::FindNode:
+        if (c == '/') {
+            if (stateMachine.node == NULL) {
+                stateMachine.node = RootNode::getInstance();
+            } else {
+                appendByteToStateMachineRx('\0');
+                stateMachine.node = stateMachine.node->getChildByName(stateMachine.rxBuffer);
+            }
+        } else if (stateMachine.node == NULL) {
+            // all node paths start with '/'
+            stateMachine.state == State::Invalid;
+            stateMachine.result = ProtocolResult_SyntaxError;
+        } else if (!isLineEnd(c)) {
+            appendByteToStateMachineRx(c);
+        } else {
+            // isLineEnd
+            if (stateMachine.function == ProtocolFunction::GET) {
+                // select node if command ended with a node name
+                if (stateMachine.rxBufferPosition != 0) {
+                    appendByteToStateMachineRx('\0');
+                    stateMachine.node = stateMachine.node->getChildByName(stateMachine.rxBuffer);
+                }
+
+                if (stateMachine.node != NULL) {
+                    listNode(stateMachine.node);
+                } else {
+                    reportResult(ProtocolResult_NodeNotFound);
+                }
+                resetStateMachine();
+            } else {
+                // only GET is allowed on nodes (TODO OPEN/CLOSE)
+                reportResult(ProtocolResult_SyntaxError);
+                resetStateMachine();
+            }
+        }
+        break;
+    default:
+        exit(1);
+    }
+}
+
+void ProtocolParser::appendByteToStateMachineRx(char c) {
+    if (stateMachine.rxBufferPosition < MaxLiteralLength) {
+        stateMachine.rxBuffer[stateMachine.rxBufferPosition] = c;
+        stateMachine.rxBufferPosition++;
+    } else if (c == '\0') {
+        // always put the terminating NULL
+        stateMachine.rxBuffer[MaxLiteralLength] = '\0';
+    }
+}
+
+bool ProtocolParser::isLineEnd(char c) {
+    return (c == '\n') || (c == '\r');
+}
+
 ProtocolResult_t ProtocolParser::parseString(char *s, uint16_t length) {
-    ProtocolResult_t result = ProtocolResult_InternalError;
+    /*ProtocolResult_t result = ProtocolResult_InternalError;
 
     char *p = strchr(s, '\n');
     if (p == NULL) {
@@ -330,7 +409,7 @@ ProtocolResult_t ProtocolParser::parseString(char *s, uint16_t length) {
     }
 
 
-    return ProtocolResult_UnknownFunc;
+    return ProtocolResult_UnknownFunc;*/
 }
 
 void ProtocolParser::reportResult(ProtocolResult_t errorCode) {
@@ -634,7 +713,7 @@ const char* ProtocolParser::resultToStr(ProtocolResult_t result) {
  * @return ProtocolResult_Ok, if added to array, ProtocolResult_Failed if array already exists or array full
  */
 ProtocolResult_t ProtocolParser::addNodeToSubscribed(Node *node) {
-    if (subscribedNodeCount == MAX_SUBSCRIBED_NODES) {
+    if (subscribedNodeCount == MaxSubscribedNodes) {
         return ProtocolResult_Failed;
     }
 
@@ -687,7 +766,6 @@ ProtocolParser::BinarySerialInterface::~BinarySerialInterface() {
 }
 
 bool ProtocolParser::BinarySerialInterface::writeBytes(const uint8_t *data, uint16_t length) {
-
     if (!hasTransmittedBytes) {
         // if the transaction is started, result must be Ok
         ProtocolParser::printPropertyListingPreamble(serialInterface, node, prop, listingType);

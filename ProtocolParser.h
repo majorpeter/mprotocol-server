@@ -9,6 +9,9 @@ class Node;
 
 class ProtocolParser: public AbstractUpLayer {
 public:
+    static const uint16_t MaxLiteralLength = 64;
+    static const uint16_t MaxSubscribedNodes = 15;
+
     ProtocolParser(AbstractSerialInterface* serialInterface);
     virtual ~ProtocolParser();
     void handleSubscriptions();
@@ -27,8 +30,28 @@ public:
     ProtocolResult_t addNodeToSubscribed(Node *node);
     ProtocolResult_t removeNodeFromSubscribed(Node *node);
 private:
+    enum class State {
+        /// ready to receive next command
+        Idle,
+        /// the current command is invalid, wait for it to finish
+        Invalid,
+        /// decode the first few bytes to a valid protocol function
+        DecodeFunction,
+        /// find the node by path
+        FindNode,
+    };
     enum class ProtocolFunction {Unknown, Invalid, GET, SET, CALL, OPEN, CLOSE, MAN};
     enum class PropertyListingPreambleType {Get, Change};
+
+    struct {
+        State state;
+        ProtocolFunction function;
+        ProtocolResult_t result;
+        Node* node;
+
+        char rxBuffer[MaxLiteralLength + 1];
+        uint16_t rxBufferPosition;
+    } stateMachine;
 
     class BinarySerialInterface: public AbstractSerialInterface {
     public:
@@ -47,9 +70,7 @@ private:
 
     static ProtocolParser* instance;
     AbstractSerialInterface* serialInterface;
-    char *rxBuffer;
-    int rxPosition;
-    Node **subscribedNodes;
+    Node* subscribedNodes[MaxSubscribedNodes];
     uint16_t subscribedNodeCount;
 
     void listNode(Node *node);
@@ -60,6 +81,11 @@ private:
     ProtocolResult_t setProperty(Node *node, const Property_t *prop, const char* value);
     ProtocolResult_t getBinaryProperty(const Node *node, const Property_t *prop, char* value);
     static ProtocolFunction decodeFunction(const char* str, uint16_t length);
+
+    void resetStateMachine();
+    void receiveByte(char c);
+    inline void appendByteToStateMachineRx(char c);
+    inline bool isLineEnd(char c);
 
     void handleReceivedCommands();
 };
