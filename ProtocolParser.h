@@ -23,7 +23,6 @@ public:
     virtual bool receiveBytes(const uint8_t* bytes, uint16_t len);
     void handler();
 
-    ProtocolResult_t parseString(char* s, uint16_t length = 0);
     void reportResult(ProtocolResult_t errorCode);
     void writeManual(const Node *node, const Property_t *property);
     static const char* resultToStr(ProtocolResult_t result);
@@ -88,8 +87,6 @@ private:
     void receiveByte(char c);
     inline void appendByteToStateMachineRx(char c);
     inline bool isLineEnd(char c);
-
-    void handleReceivedCommands();
 };
 
 #endif /* PROTOCOLPARSER_H_ */
