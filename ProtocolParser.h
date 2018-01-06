@@ -39,6 +39,8 @@ private:
         DecodeFunction,
         /// find the node by path
         FindNode,
+        /// find property by name
+        FindProperty,
     };
     enum class ProtocolFunction {Unknown, Invalid, GET, SET, CALL, OPEN, CLOSE, MAN};
     enum class PropertyListingPreambleType {Get, Change};

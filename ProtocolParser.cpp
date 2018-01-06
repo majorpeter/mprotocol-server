@@ -236,11 +236,25 @@ void ProtocolParser::receiveByte(char c) {
             // all node paths start with '/'
             stateMachine.state == State::Invalid;
             stateMachine.result = ProtocolResult_SyntaxError;
+        } else if (c == '.') {
+            appendByteToStateMachineRx('\0');
+            stateMachine.node = stateMachine.node->getChildByName(stateMachine.rxBuffer);
+            if (stateMachine.node != NULL) {
+                stateMachine.state = State::FindProperty;
+                stateMachine.rxBufferPosition = 0;
+            } else {
+                stateMachine.state = State::Invalid;
+                stateMachine.result = ProtocolResult_NodeNotFound;
+            }
         } else if (!isLineEnd(c)) {
             appendByteToStateMachineRx(c);
         } else {
             // isLineEnd
-            if (stateMachine.function == ProtocolFunction::GET) {
+            switch (stateMachine.function) {
+            case ProtocolFunction::GET:
+            case ProtocolFunction::MAN:
+            case ProtocolFunction::OPEN:
+            case ProtocolFunction::CLOSE:
                 // select node if command ended with a node name
                 if (stateMachine.rxBufferPosition != 0) {
                     appendByteToStateMachineRx('\0');
@@ -248,16 +262,52 @@ void ProtocolParser::receiveByte(char c) {
                 }
 
                 if (stateMachine.node != NULL) {
-                    listNode(stateMachine.node);
+                    switch (stateMachine.function) {
+                    case ProtocolFunction::GET:
+                        listNode(stateMachine.node);
+                        break;
+                    case ProtocolFunction::MAN:
+                        writeManual(stateMachine.node, NULL);
+                        break;
+                    }
                 } else {
                     reportResult(ProtocolResult_NodeNotFound);
                 }
                 resetStateMachine();
-            } else {
-                // only GET is allowed on nodes (TODO OPEN/CLOSE)
+                break;
+            default:
                 reportResult(ProtocolResult_SyntaxError);
                 resetStateMachine();
+                break;
             }
+        }
+        break;
+    case State::FindProperty:
+        if (!isLineEnd(c)) {
+            appendByteToStateMachineRx(c);
+        } else {
+            appendByteToStateMachineRx('\0');
+            const Property_t* prop = stateMachine.node->getPropertyByName(stateMachine.rxBuffer);
+            if (prop != NULL) {
+                switch (stateMachine.function) {
+                case ProtocolFunction::GET:
+                    listProperty(stateMachine.node, prop);
+                    break;
+                case ProtocolFunction::SET:
+                    // cannot set value if not present
+                    reportResult(ProtocolResult_SyntaxError);
+                    break;
+                case ProtocolFunction::CALL:
+                    reportResult(setProperty(stateMachine.node, prop, ""));
+                    break;
+                case ProtocolFunction::MAN:
+                    writeManual(stateMachine.node, prop);
+                    break;
+                }
+            } else {
+                reportResult(ProtocolResult_PropertyNotFound);
+            }
+            resetStateMachine();
         }
         break;
     default:
