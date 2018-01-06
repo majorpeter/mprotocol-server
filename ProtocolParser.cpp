@@ -136,6 +136,7 @@ void ProtocolParser::resetStateMachine() {
     stateMachine.function = ProtocolFunction::Unknown;
     stateMachine.result = ProtocolResult_Ok;
     stateMachine.node = NULL;
+    stateMachine.prop = NULL;
     stateMachine.rxBufferPosition = 0;
 }
 
@@ -227,29 +228,50 @@ void ProtocolParser::receiveByte(char c) {
         break;
     case State::FindProperty:
         if (!isLineEnd(c)) {
-            appendByteToStateMachineRx(c);
+            if (c != '=') {
+                appendByteToStateMachineRx(c);
+            } else {
+                appendByteToStateMachineRx('\0');
+                stateMachine.prop = stateMachine.node->getPropertyByName(stateMachine.rxBuffer);
+                if (stateMachine.prop != NULL) {
+                    stateMachine.state = State::SetCallProperty;
+                    stateMachine.rxBufferPosition = 0;
+                } else {
+                    stateMachine.state = State::Invalid;
+                    stateMachine.result = ProtocolResult_PropertyNotFound;
+                }
+            }
         } else {
             appendByteToStateMachineRx('\0');
-            const Property_t* prop = stateMachine.node->getPropertyByName(stateMachine.rxBuffer);
-            if (prop != NULL) {
+            stateMachine.prop = stateMachine.node->getPropertyByName(stateMachine.rxBuffer);
+            if (stateMachine.prop != NULL) {
                 switch (stateMachine.function) {
                 case ProtocolFunction::GET:
-                    listProperty(stateMachine.node, prop);
+                    listProperty(stateMachine.node, stateMachine.prop);
                     break;
                 case ProtocolFunction::SET:
                     // cannot set value if not present
                     reportResult(ProtocolResult_SyntaxError);
                     break;
                 case ProtocolFunction::CALL:
-                    reportResult(setProperty(stateMachine.node, prop, ""));
+                    reportResult(setProperty(stateMachine.node, stateMachine.prop, ""));
                     break;
                 case ProtocolFunction::MAN:
-                    writeManual(stateMachine.node, prop);
+                    writeManual(stateMachine.node, stateMachine.prop);
                     break;
                 }
             } else {
                 reportResult(ProtocolResult_PropertyNotFound);
             }
+            resetStateMachine();
+        }
+        break;
+    case State::SetCallProperty:
+        if (!isLineEnd(c)) {
+            appendByteToStateMachineRx(c);
+        } else {
+            appendByteToStateMachineRx('\0');
+            reportResult(setProperty(stateMachine.node, stateMachine.prop, stateMachine.rxBuffer));
             resetStateMachine();
         }
         break;

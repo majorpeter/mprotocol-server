@@ -40,6 +40,8 @@ private:
         FindNode,
         /// find property by name
         FindProperty,
+        /// SET or CALL property
+        SetCallProperty
     };
     enum class ProtocolFunction {Unknown, Invalid, GET, SET, CALL, OPEN, CLOSE, MAN};
     enum class PropertyListingPreambleType {Get, Change};
@@ -49,6 +51,7 @@ private:
         ProtocolFunction function;
         ProtocolResult_t result;
         Node* node;
+        const Property_t* prop;
 
         char rxBuffer[MaxLiteralLength + 1];
         uint16_t rxBufferPosition;
