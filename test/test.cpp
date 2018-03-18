@@ -83,6 +83,9 @@ int main() {
     tester.test("SET /MEMORY.BinarySeg=AABB" ARBITRARY_HEX_PATTERN_64 "\n", "E0:Ok\n");
     tester.test("GET /MEMORY.BinarySeg\n", "PW_BINARY BinarySeg=AABB" ARBITRARY_HEX_PATTERN_64 "\n");
 
+
+    //TODO test OPEN CLOSE!
+
     tester.printResults();
 
     return 0;
