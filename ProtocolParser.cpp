@@ -207,6 +207,14 @@ void ProtocolParser::receiveByte(char c) {
                     case ProtocolFunction::MAN:
                         writeManual(stateMachine.node, NULL);
                         break;
+                    case ProtocolFunction::OPEN:
+                        reportResult(addNodeToSubscribed(stateMachine.node));
+                        break;
+                    case ProtocolFunction::CLOSE:
+                        reportResult(removeNodeFromSubscribed(stateMachine.node));
+                        break;
+                    default:
+                        break;
                     }
                 } else {
                     reportResult(ProtocolResult_NodeNotFound);
