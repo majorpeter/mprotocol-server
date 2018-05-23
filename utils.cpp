@@ -12,6 +12,8 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <math.h>
+#include <string.h>
 
 namespace ProtocolServerUtils {
 
@@ -22,6 +24,11 @@ namespace ProtocolServerUtils {
  */
 int printFloat(char* dest, float f) {
     const char* const dest_orig = dest;
+
+    if (isnanf(f)) {
+        strcpy(dest, "nan");
+        return 3;
+    }
 
     // print '-' if negative
     if (f < 0.f) {
